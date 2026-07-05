@@ -12,8 +12,8 @@ const InitialAvatar = ({ name = 'Commander Nova', size = 'md', className = '' })
   const tone = toneMap[Math.abs(name.length) % toneMap.length];
   const sizes = {
     sm: 'h-8 w-8 text-xs rounded-xl',
-    md: 'h-10 w-10 text-sm rounded-2xl',
-    lg: 'h-12 w-12 text-base rounded-2xl',
+    md: 'h-11 w-11 text-sm rounded-2xl',
+    lg: 'h-16 w-16 text-lg rounded-2xl',
     xl: 'h-16 w-16 text-xl rounded-3xl',
   };
 

@@ -366,6 +366,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [source, setSource] = useState('demo');
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
 
   const loadDashboard = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -416,13 +417,13 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'Crew') {
+    if (isTeamMember) {
       setLoading(false);
       return;
     }
 
     loadDashboard();
-  }, [loadDashboard, user?.role]);
+  }, [loadDashboard, isTeamMember]);
 
   const missions = asArray(stats?.missions);
   const recentObjectives = asArray(stats?.recentObjectives);
@@ -437,7 +438,7 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  if (user?.role === 'Crew') {
+  if (isTeamMember) {
     return <CrewDashboard authError={authError} />;
   }
 
@@ -456,7 +457,7 @@ const Dashboard = () => {
             {source === 'live' ? 'Live Data' : 'Demo Fallback Data'}
           </p>
           <h1 className="mt-1 font-display text-3xl font-black text-white lg:text-4xl">
-            Command Center
+            Dashboard
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
             Welcome back, {user?.name || 'Project Manager'}. Monitor project progress, deadline risk, team workload, and project health from one view.

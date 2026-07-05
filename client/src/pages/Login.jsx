@@ -105,7 +105,7 @@ const Login = () => {
         <div className="mt-8 text-center text-xs font-mono text-gray-500">
           <p className="mb-2">
             New Project Manager?{' '}
-            <Link to="/register?role=Captain" className="text-neon-cyan hover:underline font-semibold">
+            <Link to="/register?role=ProjectManager" className="text-neon-cyan hover:underline font-semibold">
               Create a workspace
             </Link>
           </p>

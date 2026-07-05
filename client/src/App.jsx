@@ -23,7 +23,8 @@ import MyObjectives from './pages/MyObjectives';
 
 const CaptainOnly = ({ children }) => {
   const { user } = useAuth();
-  if (user?.role === 'Crew') {
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+  if (isTeamMember) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -42,7 +43,7 @@ function App() {
             <Route path="/join" element={<JoinTeam />} />
             <Route path="/join/:inviteCode" element={<JoinTeam />} />
 
-            {/* Protected Command Center Console Shell */}
+            {/* Protected Dashboard Shell */}
             <Route
               element={
                 <ProtectedRoute>

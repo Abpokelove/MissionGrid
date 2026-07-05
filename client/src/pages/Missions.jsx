@@ -100,7 +100,8 @@ const Missions = () => {
     return 'text-neon-red';
   };
 
-  const isCaptain = user?.role !== 'Crew';
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+  const isCaptain = !isTeamMember;
 
   if (loading) {
     return (

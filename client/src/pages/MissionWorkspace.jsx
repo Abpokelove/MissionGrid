@@ -4,6 +4,7 @@ import { missionAPI, objectiveAPI } from '../services/api';
 import { FiArrowLeft, FiEdit3, FiCompass, FiLayers, FiRadio, FiPlus, FiAlertTriangle, FiAlertOctagon } from 'react-icons/fi';
 import ObjectiveDetailModal from '../components/ObjectiveDetailModal';
 import OrbitView from '../components/command/OrbitView';
+import InitialAvatar from '../components/InitialAvatar';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/useAuth';
 
@@ -18,7 +19,8 @@ const MissionWorkspace = () => {
   // Objective details modal controls
   const [selectedObjective, setSelectedObjective] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const isCaptain = user?.role !== 'Crew';
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+  const isCaptain = !isTeamMember;
 
   const fetchWorkspaceTelemetry = useCallback(async () => {
     try {
@@ -323,7 +325,7 @@ const MissionWorkspace = () => {
                       <div
                         key={o._id}
                         onClick={() => isCaptain && handleEditObjectiveOpen(o)}
-                        className={`glass-card p-4 hover:border-white/20 transition-all relative group ${isCaptain ? 'cursor-pointer' : ''} ${
+                        className={`glass-card relative flex min-h-[168px] flex-col justify-between p-3.5 transition-all hover:border-white/20 ${isCaptain ? 'cursor-pointer' : ''} ${
                           o.isBlocked ? 'border-red-500/20' : ''
                         }`}
                       >
@@ -333,7 +335,7 @@ const MissionWorkspace = () => {
                           </div>
                         )}
 
-                        <div className="flex justify-between items-start gap-2 mb-2.5">
+                        <div className="flex items-start justify-between gap-2">
                           <span className={`text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.2 rounded border ${
                             o.priority === 'Critical' ? 'bg-red-500/10 border-red-500/20 text-neon-red' :
                             o.priority === 'High' ? 'bg-amber-500/10 border-amber-500/20 text-neon-amber' :
@@ -342,61 +344,62 @@ const MissionWorkspace = () => {
                           }`}>
                             {o.priority}
                           </span>
-                          <span className="font-mono text-[9px] text-gray-500">{o.progress}%</span>
+                          <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-neon-cyan">{o.progress}%</span>
                         </div>
 
-                        <h4 className="font-semibold text-xs text-white leading-snug group-hover:text-neon-cyan transition-colors mb-3 line-clamp-2">
+                        <h4 className="mt-3 line-clamp-2 font-semibold text-sm leading-snug text-white transition-colors hover:text-neon-cyan">
                           {o.title}
                         </h4>
 
-                        {/* Card bottom: Assignee & Date */}
-                        <div className="flex justify-between items-center pt-2.5 border-t border-white/5 text-[10px]">
-                          {o.assignedTo ? (
+                        <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] p-2">
+                          {o.assignedTo?.avatar ? (
                             <img
                               src={o.assignedTo.avatar}
                               alt={o.assignedTo.name}
-                              className="w-5.5 h-5.5 rounded-full border border-white/10"
+                              className="h-9 w-9 max-h-9 max-w-9 shrink-0 rounded-xl border border-white/10 object-cover"
                               title={o.assignedTo.name}
                             />
                           ) : (
-                            <span className="text-gray-600 font-mono text-[9px]">UNASSIGNED</span>
+                            <InitialAvatar name={o.assignedTo?.name || 'Unassigned'} size="sm" />
                           )}
-
-                          {o.deadline ? (
-                            <span className="text-[9px] font-mono text-gray-500">
-                              {new Date(o.deadline).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-mono text-gray-600">NO DATE</span>
-                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-semibold text-white">{o.assignedTo?.name || 'Unassigned'}</p>
+                            <p className="mt-0.5 text-[9px] font-mono uppercase tracking-wider text-gray-500">Assignee</p>
+                          </div>
                         </div>
 
-                        {/* Interactive Status Transition buttons (click-to-move) */}
-                        <div className="mt-3 pt-2.5 border-t border-white/5 hidden group-hover:flex justify-between items-center gap-1.5">
-                          <span className="text-[8px] font-mono text-gray-500">Move:</span>
+                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-2.5 text-[10px]">
+                          <div className="min-w-0">
+                            <p className="font-mono uppercase text-gray-500">
+                              {o.deadline ? new Date(o.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'No date'}
+                            </p>
+                            <p className="mt-1 truncate font-mono text-gray-600">{o.status || col.id}</p>
+                          </div>
                           <div className="flex gap-1">
                             {col.id !== 'Backlog' && (
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const statuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Completed'];
                                   const idx = statuses.indexOf(col.id);
                                   handleStatusChange(o, statuses[idx - 1]);
                                 }}
-                                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-neon-blue/15 text-[8px] text-gray-400 hover:text-white transition-colors"
+                                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-gray-400 transition-colors hover:bg-neon-blue/15 hover:text-white"
                               >
                                 &larr;
                               </button>
                             )}
                             {col.id !== 'Completed' && (
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const statuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Completed'];
                                   const idx = statuses.indexOf(col.id);
                                   handleStatusChange(o, statuses[idx + 1]);
                                 }}
-                                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-neon-blue/15 text-[8px] text-gray-400 hover:text-white transition-colors"
+                                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-gray-400 transition-colors hover:bg-neon-blue/15 hover:text-white"
                               >
                                 &rarr;
                               </button>

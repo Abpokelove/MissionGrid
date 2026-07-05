@@ -66,6 +66,7 @@ export const inviteAPI = {
 
 export const workspaceAPI = {
   getMe: () => API.get('/workspace/me'),
+  regenerateInvite: () => API.post('/workspace/regenerate-invite'),
 };
 
 // ==================== Missions ====================

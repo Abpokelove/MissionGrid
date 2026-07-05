@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Workspace = require('../models/Workspace');
 const { generateUniqueInviteCode } = require('../utils/inviteCode');
+const { ensureRequestWorkspace } = require('../utils/workspaceRepair');
 
 const publicInvitePayload = (workspace) => ({
   inviteCode: workspace.inviteCode,
@@ -17,7 +18,7 @@ const getInvite = asyncHandler(async (req, res) => {
 
   if (!workspace) {
     res.status(404);
-    throw new Error('Invite code was not found');
+    throw new Error('Invalid invite code');
   }
 
   res.json(publicInvitePayload(workspace));
@@ -27,7 +28,8 @@ const getInvite = asyncHandler(async (req, res) => {
 // @route   POST /api/invites/regenerate
 // @access  Private/Captain
 const regenerateInvite = asyncHandler(async (req, res) => {
-  const workspace = await Workspace.findById(req.user.workspace).populate('owner', 'name');
+  const ensuredWorkspace = await ensureRequestWorkspace(req);
+  const workspace = await Workspace.findById(ensuredWorkspace?._id).populate('owner', 'name');
 
   if (!workspace) {
     res.status(404);

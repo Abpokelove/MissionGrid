@@ -139,32 +139,30 @@ const JoinTeam = () => {
 
           <section className="glass-card p-6 lg:p-8">
             <form onSubmit={handleSubmit} className="space-y-5">
-              {!routeInviteCode && (
-                <div>
-                  <label className="label-text">Invite Code</label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      type="text"
-                      className="input-field text-sm uppercase"
-                      placeholder="e.g. ORBIT123"
-                      value={inviteCode}
-                      onChange={(event) => {
-                        setInviteCode(event.target.value.toUpperCase());
-                        setLookupError(null);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => lookupInvite(inviteCode)}
-                      disabled={lookupLoading}
-                      className="btn-secondary inline-flex items-center justify-center gap-2 text-sm sm:min-w-32"
-                    >
-                      <FiRefreshCw className={lookupLoading ? 'animate-spin' : ''} />
-                      Lookup
-                    </button>
-                  </div>
+              <div>
+                <label className="label-text">Invite Code</label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    className="input-field text-sm uppercase"
+                    placeholder="e.g. ORBIT123"
+                    value={inviteCode}
+                    onChange={(event) => {
+                      setInviteCode(event.target.value.toUpperCase());
+                      setLookupError(null);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => lookupInvite(inviteCode)}
+                    disabled={lookupLoading}
+                    className="btn-secondary inline-flex items-center justify-center gap-2 text-sm sm:min-w-32"
+                  >
+                    <FiRefreshCw className={lookupLoading ? 'animate-spin' : ''} />
+                    Lookup
+                  </button>
                 </div>
-              )}
+              </div>
 
               {(lookupLoading || teamInfo || lookupError) && (
                 <div className={`rounded-2xl border p-4 text-sm ${

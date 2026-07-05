@@ -13,6 +13,7 @@ const Topbar = ({ onVoiceTrigger }) => {
   const { user, authError } = useAuth();
   const [alerts, setAlerts] = useState([]);
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
 
   useEffect(() => {
     let mounted = true;
@@ -54,7 +55,7 @@ const Topbar = ({ onVoiceTrigger }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        {user?.role !== 'Crew' && (
+        {!isTeamMember && (
           <button
             type="button"
             onClick={onVoiceTrigger}
@@ -134,7 +135,7 @@ const Topbar = ({ onVoiceTrigger }) => {
           <div className="hidden lg:block">
             <p className="text-xs font-semibold tracking-wide text-white">{user?.name || 'Commander Nova'}</p>
             <p className="text-[10px] font-mono uppercase tracking-widest text-neon-blue">
-              {user?.role === 'Crew' ? 'Team Member' : 'Project Manager'}
+              {isTeamMember ? 'Team Member' : 'Project Manager'}
             </p>
           </div>
         </div>

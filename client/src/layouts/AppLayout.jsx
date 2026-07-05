@@ -40,7 +40,7 @@ const AppLayout = () => {
         className="pointer-events-none fixed -left-20 top-28 z-0 hidden h-44 w-44 object-contain opacity-[0.07] mix-blend-screen drop-shadow-[0_0_56px_rgba(245,158,11,0.42)] xl:block"
       />
 
-      <div className="relative z-10 grid h-screen min-h-screen grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
+      <div className="relative z-10 grid min-h-screen grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[270px_minmax(0,1fr)]">
         <Sidebar />
 
         <div className="flex min-h-0 min-w-0 flex-col">

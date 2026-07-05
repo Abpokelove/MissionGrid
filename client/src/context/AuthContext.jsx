@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password, role, workspaceName, inviteCode) => {
-    if (role === 'Crew') {
+    if (role === 'Crew' || role === 'Team Member' || role === 'TeamMember') {
       return joinTeam({ inviteCode, name, email, password });
     }
     return registerCaptain({ name, email, password, workspaceName: workspaceName || `${name}'s Team` });

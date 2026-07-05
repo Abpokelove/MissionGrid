@@ -8,17 +8,18 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isCaptain = user?.role !== 'Crew';
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+  const isCaptain = !isTeamMember;
   const menuItems = isCaptain
     ? [
-        { name: 'Command Center', path: '/dashboard', icon: FiGrid },
+        { name: 'Dashboard', path: '/dashboard', icon: FiGrid },
         { name: 'Projects', path: '/missions', icon: FiTarget },
         { name: 'Analytics', path: '/analytics', icon: FiBarChart2 },
         { name: 'Team Workload', path: '/workload', icon: FiUsers },
         { name: 'Settings', path: '/settings', icon: FiSettings },
       ]
     : [
-        { name: 'Command Center', path: '/dashboard', icon: FiGrid },
+        { name: 'Dashboard', path: '/dashboard', icon: FiGrid },
         { name: 'My Tasks', path: '/my-objectives', icon: FiCheckSquare },
         { name: 'Projects', path: '/missions', icon: FiTarget },
         { name: 'Settings', path: '/settings', icon: FiSettings },
@@ -30,16 +31,20 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sticky top-0 z-30 flex h-screen w-[76px] flex-col justify-between border-r border-white/10 bg-space-950/82 backdrop-blur-2xl transition-[width] duration-300 lg:w-[270px]">
+    <aside className="sticky top-0 z-30 flex min-h-screen w-[76px] flex-col justify-between border-r border-white/10 bg-space-950/82 backdrop-blur-2xl transition-[width] duration-300 lg:w-[270px]">
       <div>
         <div className="flex items-center justify-center gap-3 border-b border-white/5 p-4 lg:justify-start lg:p-5">
-          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-amber-200/20 bg-amber-400/10 shadow-glow-amber">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-neon-blue/25 bg-white/8 shadow-glow-blue">
             <img
-              src="/images/sun.webp"
-              alt=""
-              aria-hidden="true"
-              className="h-10 w-10 object-contain drop-shadow-[0_0_18px_rgba(245,158,11,0.75)]"
+              src="/images/MissionGrid_logo.ico"
+              alt="MissionGrid"
+              className="h-11 w-11 object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+                event.currentTarget.nextElementSibling.style.display = 'block';
+              }}
             />
+            <span className="hidden font-display text-sm font-black text-neon-cyan">MG</span>
           </div>
           <div className="hidden lg:block">
             <h1 className="font-display text-lg font-black leading-tight tracking-wider text-white">
@@ -79,7 +84,7 @@ const Sidebar = () => {
           <div className="hidden min-w-0 flex-1 lg:block">
             <p className="truncate text-sm font-semibold text-white">{user?.name || 'Commander Nova'}</p>
             <p className="truncate text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
-              {user?.role === 'Crew' ? 'Team Member' : 'Project Manager'}
+              {isTeamMember ? 'Team Member' : 'Project Manager'}
             </p>
           </div>
         </div>

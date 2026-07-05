@@ -8,18 +8,21 @@ const { ensureUserWorkspace } = require('../utils/workspaceRepair');
 const makeAvatar = (name, color = '0ea5e9') =>
   `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=${color}`;
 
+const isProjectManager = (user) => user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
+const isTeamMemberRole = (role) => role === 'Crew' || role === 'Team Member' || role === 'TeamMember';
+
 const serializeUser = (user, token) => {
   const workspace = user.workspace && typeof user.workspace === 'object'
     ? {
         _id: user.workspace._id,
         name: user.workspace.name,
-        inviteCode: user.role === 'Captain' ? user.workspace.inviteCode : undefined,
+        inviteCode: isProjectManager(user) ? user.workspace.inviteCode : undefined,
       }
     : user.workspace
       ? { _id: user.workspace }
       : null;
 
-  return {
+  const userPayload = {
     _id: user._id,
     name: user.name,
     email: user.email,
@@ -27,8 +30,15 @@ const serializeUser = (user, token) => {
     avatar: user.avatar,
     workspace: workspace?._id || workspace || null,
     workspaceName: workspace?.name,
-    inviteCode: user.role === 'Captain' ? workspace?.inviteCode : undefined,
+    inviteCode: isProjectManager(user) ? workspace?.inviteCode : undefined,
     createdAt: user.createdAt,
+  };
+
+  return {
+    ...userPayload,
+    user: userPayload,
+    workspace,
+    inviteCode: isProjectManager(user) ? workspace?.inviteCode : undefined,
     ...(token ? { token } : {}),
   };
 };
@@ -94,7 +104,7 @@ const joinTeam = asyncHandler(async (req, res) => {
   const workspace = await findInviteWorkspace(inviteCode);
   if (!workspace) {
     res.status(404);
-    throw new Error('Invite code was not found');
+    throw new Error('Invalid invite code');
   }
 
   const userExists = await User.findOne({ email });
@@ -129,7 +139,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Please provide name, email, and password');
   }
 
-  if (role === 'Crew') {
+  if (isTeamMemberRole(role)) {
     if (!inviteCode) {
       res.status(400);
       throw new Error('Team members must join with an invite code');
@@ -138,7 +148,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const workspace = await findInviteWorkspace(inviteCode);
     if (!workspace) {
       res.status(404);
-      throw new Error('Invite code was not found');
+      throw new Error('Invalid invite code');
     }
 
     const userExists = await User.findOne({ email });

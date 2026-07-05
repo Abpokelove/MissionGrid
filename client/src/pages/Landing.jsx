@@ -15,7 +15,7 @@ const roleCards = [
   {
     title: 'I am a Project Manager',
     detail: 'Create a workspace, manage projects, assign tasks, and invite your team.',
-    to: '/register?role=Captain',
+    to: '/register?role=ProjectManager',
     icon: FiBriefcase,
   },
   {
@@ -58,7 +58,7 @@ const Landing = () => {
               Mission<span className="text-neon-cyan">Grid</span>
             </p>
             <p className="hidden text-[9px] font-mono uppercase tracking-[0.24em] text-neon-blue sm:block">
-              Command Center
+              Dashboard
             </p>
           </div>
         </Link>
@@ -67,7 +67,7 @@ const Landing = () => {
           <Link to="/login" className="hidden rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white backdrop-blur-xl transition hover:border-neon-cyan/40 hover:bg-neon-blue/10 sm:inline-flex">
             Login
           </Link>
-          <Link to="/register?role=Captain" className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-space-950 transition hover:bg-neon-cyan">
+          <Link to="/register?role=ProjectManager" className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-space-950 transition hover:bg-neon-cyan">
             Register
           </Link>
         </div>

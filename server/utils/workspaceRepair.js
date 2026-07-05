@@ -13,6 +13,8 @@ const getWorkspaceId = (workspace) => {
 const includesMember = (members = [], userId) =>
   members.some((member) => member?.toString() === userId.toString());
 
+const isProjectManager = (user) => user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
+
 const normalizeWorkspace = async (workspace, user) => {
   if (!workspace) return null;
 
@@ -36,7 +38,7 @@ const normalizeWorkspace = async (workspace, user) => {
 };
 
 const repairLegacyProjectData = async (user, workspace) => {
-  if (!user?._id || !workspace?._id || user.role !== 'Captain') return;
+  if (!user?._id || !workspace?._id || !isProjectManager(user)) return;
 
   const missingWorkspace = {
     $or: [{ workspace: null }, { workspace: { $exists: false } }],
@@ -76,7 +78,7 @@ const ensureUserWorkspace = async (user) => {
     workspace = await Workspace.findOne({ members: user._id });
   }
 
-  if (!workspace && user.role === 'Captain') {
+  if (!workspace && isProjectManager(user)) {
     workspace = await Workspace.create({
       name: `${user.name || 'MissionGrid'} Workspace`,
       owner: user._id,

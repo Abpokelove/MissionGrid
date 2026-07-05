@@ -8,47 +8,45 @@ const Settings = () => {
   const { user } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const email = user?.email || '';
-  const [avatar, setAvatar] = useState(user?.avatar || '');
+  const avatar = user?.avatar || '';
+  const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
 
   const handleSave = (e) => {
     e.preventDefault();
-    toast.success('Control room configurations saved successfully');
+    toast.success('Settings saved');
   };
 
   return (
-    <div className="page-container max-w-5xl mx-auto">
+    <div className="page-container mx-auto max-w-6xl">
       {/* Title Header */}
       <div>
-        <h1 className="page-title text-white font-display">SETTINGS</h1>
+        <h1 className="page-title text-white font-display">Settings</h1>
         <p className="text-xs font-mono text-gray-400 mt-1">Profile, workspace, and system preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <form onSubmit={handleSave} className="glass-card p-6 space-y-4">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <form onSubmit={handleSave} className="glass-card h-fit p-5 lg:p-6">
           <div className="flex items-center gap-2 pb-3 border-b border-white/5 mb-2">
             <FiSliders className="text-neon-blue text-base" />
             <h3 className="font-display font-semibold text-sm text-white">Account Profile</h3>
           </div>
 
-          <div className="flex items-center gap-4 py-2">
+          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <img
               src={avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${name || 'User'}`}
               alt="Avatar Preview"
-              className="w-16 h-16 rounded-xl border border-white/10"
+              className="h-16 w-16 rounded-2xl border border-white/10 object-cover"
             />
-            <div>
-              <p className="text-xs font-mono text-gray-400 uppercase">Avatar URL</p>
-              <input
-                type="text"
-                className="input-field text-xs mt-1.5 px-3 py-2 w-96 max-w-full"
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="Image URL..."
-              />
+            <div className="min-w-0">
+              <p className="truncate font-display text-lg font-semibold text-white">{name || user?.name || 'MissionGrid User'}</p>
+              <p className="mt-1 truncate text-xs text-gray-400">{email}</p>
+              <p className="mt-2 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
+                {isTeamMember ? 'Team Member' : 'Project Manager'}
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="label-text">Display Name</label>
               <input
@@ -72,7 +70,7 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-white/5">
+          <div className="mt-5 flex justify-end border-t border-white/5 pt-4">
             <button type="submit" className="btn-primary text-sm">
               Save Settings
             </button>
@@ -90,7 +88,7 @@ const Settings = () => {
 
             <div className="space-y-2 font-mono text-xs text-gray-400">
               <div className="flex justify-between gap-3"><span className="uppercase">System Status:</span> <span className="text-neon-cyan">Online</span></div>
-              <div className="flex justify-between gap-3"><span className="uppercase">Role:</span> <span>{user?.role === 'Crew' ? 'Team Member' : 'Project Manager'}</span></div>
+              <div className="flex justify-between gap-3"><span className="uppercase">Role:</span> <span>{isTeamMember ? 'Team Member' : 'Project Manager'}</span></div>
               <div className="flex justify-between gap-3"><span className="uppercase">Workspace:</span> <span>{user?.workspaceName || 'MissionGrid'}</span></div>
               <div className="flex justify-between gap-3"><span className="uppercase">Control Version:</span> <span>v1.0.0</span></div>
             </div>

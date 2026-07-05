@@ -2,20 +2,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { FiCopy, FiRefreshCw, FiUsers } from 'react-icons/fi';
-import { getAPIErrorMessage, inviteAPI, workspaceAPI } from '../services/api';
+import { getAPIErrorMessage, workspaceAPI } from '../services/api';
 import { useAuth } from '../context/useAuth';
 import GlassCard from './command/GlassCard';
 
-const InviteCrewCard = ({ compact = false }) => {
+const InviteCrewCard = () => {
   const { user } = useAuth();
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [copied, setCopied] = useState(null);
   const [error, setError] = useState(null);
+  const isProjectManager = user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
 
   useEffect(() => {
-    if (user?.role !== 'Captain') {
+    if (!isProjectManager) {
       setLoading(false);
       return;
     }
@@ -26,7 +27,18 @@ const InviteCrewCard = ({ compact = false }) => {
       setError(null);
       try {
         const { data } = await workspaceAPI.getMe();
-        if (mounted) setWorkspace(data);
+        if (!mounted) return;
+
+        if (data?.inviteCode) {
+          setWorkspace(data);
+          return;
+        }
+
+        const repaired = await workspaceAPI.regenerateInvite();
+        if (mounted) {
+          setWorkspace(repaired.data);
+          toast.success('Invite code regenerated');
+        }
       } catch (err) {
         if (mounted) setError(getAPIErrorMessage(err, 'Could not load invite link'));
       } finally {
@@ -37,10 +49,10 @@ const InviteCrewCard = ({ compact = false }) => {
     return () => {
       mounted = false;
     };
-  }, [user?.role]);
+  }, [isProjectManager]);
 
   const inviteCode = useMemo(() => {
-    return workspace?.inviteCode || user?.inviteCode || 'DEMO123';
+    return String(workspace?.inviteCode || user?.inviteCode || 'DEMO123').trim().toUpperCase();
   }, [workspace?.inviteCode, user?.inviteCode]);
 
   const inviteLink = useMemo(() => {
@@ -48,7 +60,7 @@ const InviteCrewCard = ({ compact = false }) => {
     return `${origin}/join/${inviteCode}`;
   }, [inviteCode]);
 
-  if (user?.role !== 'Captain') return null;
+  if (!isProjectManager) return null;
 
   const copyValue = async (value, kind) => {
     try {
@@ -65,11 +77,12 @@ const InviteCrewCard = ({ compact = false }) => {
     setRegenerating(true);
     setError(null);
     try {
-      const { data } = await inviteAPI.regenerate();
+      const { data } = await workspaceAPI.regenerateInvite();
       setWorkspace((current) => ({
         ...(current || {}),
         inviteCode: data.inviteCode,
-        name: data.teamName || current?.name,
+        name: data.workspace?.name || data.name || current?.name,
+        workspace: data.workspace || current?.workspace,
       }));
       toast.success('Invite code regenerated');
     } catch (err) {
@@ -81,7 +94,7 @@ const InviteCrewCard = ({ compact = false }) => {
   };
 
   return (
-    <GlassCard className={`relative p-4 lg:p-5 ${compact ? '' : 'min-h-[220px]'}`} hover={false}>
+    <GlassCard className="relative p-4 lg:p-5" hover={false}>
       <img
         src="/images/crew_spaceship.webp"
         alt=""
@@ -109,7 +122,7 @@ const InviteCrewCard = ({ compact = false }) => {
             <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">Invite Code</p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
-                value={loading ? 'Loading...' : inviteCode}
+                value={inviteCode}
                 readOnly
                 className="input-field min-w-0 flex-1 text-xs font-mono tracking-[0.18em]"
               />
@@ -127,19 +140,19 @@ const InviteCrewCard = ({ compact = false }) => {
           <div>
             <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">Invite Link</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              value={loading ? `Loading ${inviteLink}` : inviteLink}
-              readOnly
-              className="input-field min-w-0 flex-1 text-xs"
-            />
-            <motion.button
-              type="button"
-              onClick={() => copyValue(inviteLink, 'link')}
-              animate={copied === 'link' ? { scale: [1, 1.04, 1] } : undefined}
-              className="btn-secondary inline-flex items-center justify-center gap-2 text-xs"
-            >
-              <FiCopy /> {copied === 'link' ? 'Copied' : 'Copy Link'}
-            </motion.button>
+              <input
+                value={inviteLink}
+                readOnly
+                className="input-field min-w-0 flex-1 text-xs"
+              />
+              <motion.button
+                type="button"
+                onClick={() => copyValue(inviteLink, 'link')}
+                animate={copied === 'link' ? { scale: [1, 1.04, 1] } : undefined}
+                className="btn-secondary inline-flex items-center justify-center gap-2 text-xs"
+              >
+                <FiCopy /> {copied === 'link' ? 'Copied' : 'Copy Link'}
+              </motion.button>
             </div>
           </div>
         </div>

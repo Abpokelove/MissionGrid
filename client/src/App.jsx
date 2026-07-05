@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
+import Loader from './components/Loader';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/useAuth';
 
@@ -30,6 +31,30 @@ const CaptainOnly = ({ children }) => {
   return children;
 };
 
+const PublicOnly = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <Loader full label="Checking current session" />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
+const RouteFallback = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <Loader full label="Checking current session" />;
+  }
+
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />;
+};
+
 function App() {
   return (
     <ErrorBoundary>
@@ -37,9 +62,9 @@ function App() {
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
+            <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+            <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
             <Route path="/join" element={<JoinTeam />} />
             <Route path="/join/:inviteCode" element={<JoinTeam />} />
 
@@ -63,7 +88,7 @@ function App() {
             </Route>
 
             {/* Catch-all redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<RouteFallback />} />
           </Routes>
 
           <Toaster

@@ -94,7 +94,7 @@ const Analytics = () => {
       { label: 'Blocked', value: totalTasks ? clamp((blockedTasks / totalTasks) * 100) : 0 },
       { label: 'Incomplete', value: totalTasks ? clamp(((totalTasks - completedTasks) / totalTasks) * 100) : 0 },
       { label: 'Health Gap', value: clamp(100 - avgHealth) },
-      { label: 'Active Load', value: totalTasks ? clamp((movingTasks / totalTasks) * 100) : 0 },
+      { label: 'Active Tasks', value: totalTasks ? clamp((movingTasks / totalTasks) * 100) : 0 },
     ];
     const radarCenter = 118;
     const radarRadius = 82;
@@ -278,12 +278,14 @@ const Analytics = () => {
               ))}
               {analytics.radarMetrics.map((metric, index) => {
                 const angle = -Math.PI / 2 + (index * 2 * Math.PI) / analytics.radarMetrics.length;
-                const labelX = 118 + Math.cos(angle) * 104;
-                const labelY = 118 + Math.sin(angle) * 104;
+                const labelCos = Math.cos(angle);
+                const labelX = 118 + labelCos * 92;
+                const labelY = 118 + Math.sin(angle) * 92;
+                const textAnchor = labelCos < -0.35 ? 'start' : labelCos > 0.35 ? 'end' : 'middle';
                 return (
                   <g key={metric.label}>
                     <line x1="118" y1="118" x2={labelX} y2={labelY} stroke="rgba(255,255,255,0.08)" />
-                    <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="9">
+                    <text x={labelX} y={labelY} textAnchor={textAnchor} dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="9">
                       {metric.label}
                     </text>
                   </g>

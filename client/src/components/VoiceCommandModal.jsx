@@ -195,6 +195,7 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
         missionId: selectedMissionId,
         title: parsedTitle,
         assignedTo: parsedAssigneeId || null,
+        assignees: parsedAssigneeId ? [parsedAssigneeId] : [],
         priority: parsedPriority,
         deadline: parsedDeadline || null,
         status: 'Backlog',

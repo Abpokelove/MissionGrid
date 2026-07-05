@@ -24,6 +24,7 @@ import OrbitView from '../components/command/OrbitView';
 import CometAlertCard from '../components/command/CometAlertCard';
 import CrewWorkloadCard from '../components/command/CrewWorkloadCard';
 import InviteCrewCard from '../components/InviteCrewCard';
+import TeamMembersCard from '../components/TeamMembersCard';
 
 const emptyStats = {
   totalMissions: 0,
@@ -276,6 +277,8 @@ const CrewDashboard = ({ authError }) => {
               </div>
             </div>
           </GlassCard>
+
+          <TeamMembersCard compact limit={4} />
         </div>
       </div>
 
@@ -383,7 +386,7 @@ const Dashboard = () => {
   const orbitObjectives = useMemo(() => recentObjectives.slice(0, 10), [recentObjectives]);
   const activeTaskRows = recentObjectives.filter((objective) => objective.status !== 'Completed');
   const getObjectiveAssignees = (objective) => {
-    const assignees = objective.assignees?.length
+    const assignees = Array.isArray(objective.assignees)
       ? objective.assignees
       : objective.assignedTo
         ? [objective.assignedTo]
@@ -615,6 +618,131 @@ const Dashboard = () => {
               </div>
             </GlassCard>
           </div>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <GlassCard className="p-4 lg:p-5" hover={false}>
+              <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-blue">Project Progress</p>
+              <div className="mt-4 flex items-center justify-center gap-6">
+                <ProgressRing value={avgMissionEnergy} label="Progress" color="#0ea5e9" size={96} />
+                <div className="max-w-[180px] text-sm leading-6 text-gray-400">
+                  Average progress across active tasks and recent projects.
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-4 lg:p-5" hover={false}>
+              <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Project Health</p>
+              <div className="mt-4 flex items-center justify-center gap-6">
+                <ProgressRing value={stats?.avgCoreStability || 100} label="Health" color={coreColor(stats?.avgCoreStability || 100)} size={96} />
+                <div className="max-w-[180px] text-sm leading-6 text-gray-400">
+                  Health score based on progress, deadline risk, and blocked tasks.
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[0.85fr_1.15fr]">
+            <GlassCard className="p-4 lg:p-5" hover={false}>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-violet">Recent Projects</p>
+                  <h2 className="mt-1 font-display text-lg font-bold text-white">Recent Projects</h2>
+                </div>
+                <FiZap className="text-neon-violet" />
+              </div>
+              <div className="space-y-3">
+                {missions.length > 0 ? (
+                  missions.slice(0, 4).map((mission, index) => (
+                    <motion.div
+                      key={mission._id || mission.title}
+                      initial={{ opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.06 }}
+                      className="rounded-lg border border-white/10 bg-white/[0.04] p-3 transition hover:border-neon-blue/30 hover:bg-neon-blue/10"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link to={`/missions/${mission._id}`} className="truncate font-display text-sm font-semibold text-white hover:text-neon-cyan">
+                            {mission.title}
+                          </Link>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase ${getPriorityTone(mission.priority)}`}>
+                              {mission.priority || 'Medium'}
+                            </span>
+                            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-mono uppercase text-gray-400">
+                              {mission.status || 'Active'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs text-neon-cyan">{mission.progress || 0}%</span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, mission.progress || 0)}%` }}
+                          transition={{ duration: 0.8, delay: 0.1 }}
+                          className="h-full rounded-full bg-gradient-to-r from-neon-blue to-neon-violet"
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-gray-500">
+                        <span>Project Health {mission.coreStability || 100}%</span>
+                        <span>{mission.deadline ? new Date(mission.deadline).toLocaleDateString() : 'No deadline'}</span>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <EmptyState
+                    icon={FiCompass}
+                    title="No Projects Yet"
+                    message="Create your first project to activate the orbit map."
+                    action={<Link to="/missions/create" className="btn-primary text-xs">Create Project</Link>}
+                  />
+                )}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-4 lg:p-5" hover={false}>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Active Tasks</p>
+                  <h2 className="mt-1 font-display text-lg font-bold text-white">Active Tasks</h2>
+                </div>
+                <Link to="/missions" className="text-sm font-semibold text-neon-blue transition hover:text-neon-cyan">
+                  Open Projects
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {activeTaskRows.slice(0, 5).map((objective) => (
+                  <div key={objective._id || objective.title} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{objective.title}</p>
+                        <p className="mt-1 text-[10px] font-mono uppercase text-gray-500">
+                          {getAssigneeLabel(objective)} / {objective.status || 'Backlog'}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 rounded-md border px-2 py-1 font-mono text-[10px] uppercase ${getPriorityTone(objective.priority)}`}>
+                        {objective.priority || 'Medium'}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full rounded-full bg-neon-cyan" style={{ width: `${objective.progress || 0}%` }} />
+                      </div>
+                      <span className="font-mono text-[10px] text-gray-400">{objective.progress || 0}%</span>
+                    </div>
+                  </div>
+                ))}
+                {activeTaskRows.length === 0 && (
+                  <EmptyState
+                    icon={FiTarget}
+                    title="No Active Tasks"
+                    message="Create or assign tasks to populate this board."
+                  />
+                )}
+              </div>
+            </GlassCard>
+          </div>
         </div>
 
         <div className="space-y-5">
@@ -642,153 +770,11 @@ const Dashboard = () => {
           </GlassCard>
 
           <CrewWorkloadCard workload={workload} />
+          <TeamMembersCard compact limit={4} />
           <InviteCrewCard compact />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <GlassCard className="p-4 lg:p-5" hover={false}>
-          <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-blue">Project Progress</p>
-          <div className="mt-4 flex items-center justify-center gap-6">
-            <ProgressRing value={avgMissionEnergy} label="Progress" color="#0ea5e9" size={96} />
-            <div className="max-w-[180px] text-sm leading-6 text-gray-400">
-              Average progress across active tasks and recent projects.
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4 lg:p-5" hover={false}>
-          <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Project Health</p>
-          <div className="mt-4 flex items-center justify-center gap-6">
-            <ProgressRing value={stats?.avgCoreStability || 100} label="Health" color={coreColor(stats?.avgCoreStability || 100)} size={96} />
-            <div className="max-w-[180px] text-sm leading-6 text-gray-400">
-              Health score based on progress, deadline risk, and blocked tasks.
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4 lg:p-5" hover={false}>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-violet">Recent Projects</p>
-              <h2 className="mt-1 font-display text-lg font-bold text-white">Recent Projects</h2>
-            </div>
-            <FiZap className="text-neon-violet" />
-          </div>
-          <div className="space-y-3">
-            {missions.length > 0 ? (
-              missions.slice(0, 4).map((mission, index) => (
-                <motion.div
-                  key={mission._id || mission.title}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.06 }}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] p-3 transition hover:border-neon-blue/30 hover:bg-neon-blue/10"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link to={`/missions/${mission._id}`} className="truncate font-display text-sm font-semibold text-white hover:text-neon-cyan">
-                        {mission.title}
-                      </Link>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase ${getPriorityTone(mission.priority)}`}>
-                          {mission.priority || 'Medium'}
-                        </span>
-                        <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-mono uppercase text-gray-400">
-                          {mission.status || 'Active'}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-mono text-xs text-neon-cyan">{mission.progress || 0}%</span>
-                  </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, mission.progress || 0)}%` }}
-                      transition={{ duration: 0.8, delay: 0.1 }}
-                      className="h-full rounded-full bg-gradient-to-r from-neon-blue to-neon-violet"
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-gray-500">
-                    <span>Project Health {mission.coreStability || 100}%</span>
-                    <span>{mission.deadline ? new Date(mission.deadline).toLocaleDateString() : 'No deadline'}</span>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <EmptyState
-                icon={FiCompass}
-                title="No Projects Yet"
-                message="Create your first project to activate the orbit map."
-                action={<Link to="/missions/create" className="btn-primary text-xs">Create Project</Link>}
-              />
-            )}
-          </div>
-        </GlassCard>
-      </div>
-
-      <GlassCard className="p-4 lg:p-5" hover={false}>
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Active Tasks</p>
-            <h2 className="mt-1 font-display text-lg font-bold text-white">Active Tasks</h2>
-          </div>
-          <Link to="/missions" className="text-sm font-semibold text-neon-blue transition hover:text-neon-cyan">
-            Open Projects
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-[10px] font-mono uppercase tracking-wider text-gray-500">
-                <th className="pb-3 font-medium">Task</th>
-                <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium">Team</th>
-                <th className="pb-3 font-medium">Priority</th>
-                <th className="pb-3 font-medium">Energy</th>
-                <th className="pb-3 text-right font-medium">Deadline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeTaskRows.map((objective) => (
-                <tr key={objective._id || objective.title} className="border-b border-white/5 last:border-0">
-                  <td className="py-4 font-semibold text-white">{objective.title}</td>
-                  <td className="py-4">
-                    <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-gray-300">
-                      {objective.status || 'Backlog'}
-                    </span>
-                    {objective.isBlocked && <span className="ml-2 rounded-md bg-neon-red/10 px-2 py-1 font-mono text-[10px] text-neon-red">BLOCKED</span>}
-                  </td>
-                  <td className="py-4 text-gray-300">{getAssigneeLabel(objective)}</td>
-                  <td className="py-4">
-                    <span className={`rounded-md border px-2 py-1 font-mono text-[10px] uppercase ${getPriorityTone(objective.priority)}`}>
-                      {objective.priority || 'Medium'}
-                    </span>
-                  </td>
-                  <td className="py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full rounded-full bg-neon-cyan" style={{ width: `${objective.progress || 0}%` }} />
-                      </div>
-                      <span className="font-mono text-gray-400">{objective.progress || 0}%</span>
-                    </div>
-                  </td>
-                  <td className="py-4 text-right font-mono text-gray-500">
-                    {objective.deadline ? new Date(objective.deadline).toLocaleDateString() : 'Open'}
-                  </td>
-                </tr>
-              ))}
-              {activeTaskRows.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="py-8 text-center text-xs text-gray-500">
-                    No active tasks yet. Create or assign tasks to populate this board.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </GlassCard>
     </div>
   );
 };

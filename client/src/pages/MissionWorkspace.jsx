@@ -89,7 +89,7 @@ const MissionWorkspace = () => {
   };
 
   const getObjectiveAssignees = (objective) => {
-    if (objective.assignees?.length) return objective.assignees.filter(Boolean);
+    if (Array.isArray(objective.assignees)) return objective.assignees.filter(Boolean);
     return objective.assignedTo ? [objective.assignedTo] : [];
   };
 

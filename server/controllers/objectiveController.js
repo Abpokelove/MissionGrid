@@ -9,12 +9,28 @@ const isTeamMember = (user) => user?.role === 'Crew' || user?.role === 'Team Mem
 
 const getId = (value) => (typeof value === 'object' ? value?._id : value);
 
-const isOwnObjective = (objective, userId) =>
-  (objective.assignedTo && getId(objective.assignedTo)?.toString() === userId.toString()) ||
-  objective.assignees?.some((assignee) => getId(assignee)?.toString() === userId.toString());
+const isOwnObjective = (objective, userId) => {
+  const normalizedUserId = userId.toString();
+  if (Array.isArray(objective.assignees)) {
+    const assigneeIds = objective.assignees
+      .map((assignee) => getId(assignee)?.toString())
+      .filter(Boolean);
+    return assigneeIds.includes(normalizedUserId);
+  }
+
+  return getId(objective.assignedTo)?.toString() === normalizedUserId;
+};
 
 const assignmentFilter = (userId) => ({
-  $or: [{ assignedTo: userId }, { assignees: userId }],
+  $or: [
+    { assignees: userId },
+    {
+      $and: [
+        { assignees: { $exists: false } },
+        { assignedTo: userId },
+      ],
+    },
+  ],
 });
 
 const normalizeAssigneeIds = (value) => {
@@ -59,7 +75,7 @@ const missionAccessFilter = (req, missionId) => {
 };
 
 const scopedObjectiveFilter = (req, extra = {}) => ({
-  ...(req.user.workspace ? { workspace: req.user.workspace } : { assignedTo: req.user._id }),
+  ...(req.user.workspace ? { workspace: req.user.workspace } : assignmentFilter(req.user._id)),
   ...extra,
 });
 

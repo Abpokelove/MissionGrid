@@ -10,6 +10,24 @@ import GlassCard from '../components/command/GlassCard';
 
 const statuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Completed'];
 
+const getId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'object') return String(value._id || value.id || '');
+  return String(value);
+};
+
+const isAssignedToUser = (objective, user) => {
+  const userId = getId(user);
+  if (!userId) return false;
+
+  if (Array.isArray(objective.assignees)) {
+    const assigneeIds = objective.assignees.map(getId).filter(Boolean);
+    return assigneeIds.includes(userId);
+  }
+
+  return getId(objective.assignedTo) === userId;
+};
+
 const MyObjectives = () => {
   const { user } = useAuth();
   const [objectives, setObjectives] = useState([]);
@@ -22,7 +40,8 @@ const MyObjectives = () => {
     setError(null);
     try {
       const { data } = await objectiveAPI.getMine();
-      setObjectives(Array.isArray(data) ? data : []);
+      const assignedTasks = (Array.isArray(data) ? data : []).filter((objective) => isAssignedToUser(objective, user));
+      setObjectives(assignedTasks);
       setSource('live');
     } catch (err) {
       setObjectives([]);
@@ -32,7 +51,7 @@ const MyObjectives = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadObjectives();

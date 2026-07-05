@@ -33,11 +33,19 @@ const missionScope = (req, extra = {}) => {
 };
 
 const assignmentFilter = (userId) => ({
-  $or: [{ assignedTo: userId }, { assignees: userId }],
+  $or: [
+    { assignees: userId },
+    {
+      $and: [
+        { assignees: { $exists: false } },
+        { assignedTo: userId },
+      ],
+    },
+  ],
 });
 
 const objectiveAssigneeIds = (objective) => {
-  if (objective.assignees?.length) return objective.assignees;
+  if (Array.isArray(objective.assignees)) return objective.assignees;
   return objective.assignedTo ? [objective.assignedTo] : [];
 };
 

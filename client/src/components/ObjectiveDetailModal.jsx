@@ -23,7 +23,7 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, members = [
       if (isEdit && objective) {
         setTitle(objective.title || '');
         setDescription(objective.description || '');
-        const selectedAssignees = objective.assignees?.length
+        const selectedAssignees = Array.isArray(objective.assignees)
           ? objective.assignees.map((assignee) => assignee?._id || assignee)
           : objective.assignedTo
             ? [objective.assignedTo?._id || objective.assignedTo]

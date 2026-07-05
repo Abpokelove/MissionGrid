@@ -3,6 +3,7 @@ import { useAuth } from '../context/useAuth';
 import { FiSliders, FiCpu } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import InviteCrewCard from '../components/InviteCrewCard';
+import TeamMembersCard from '../components/TeamMembersCard';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -78,6 +79,7 @@ const Settings = () => {
         </form>
 
         <div className="space-y-6">
+          <TeamMembersCard />
           <InviteCrewCard />
 
           <div className="glass-card p-6">

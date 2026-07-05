@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FiX, FiTrash2, FiAlertOctagon } from 'react-icons/fi';
+import { FiCheck, FiX, FiTrash2, FiAlertOctagon } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { objectiveAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
-const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) => {
+const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, members = [], onSave }) => {
   const isEdit = !!objective;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [assignedTo, setAssignedTo] = useState([]);
   const [priority, setPriority] = useState('Medium');
   const [status, setStatus] = useState('Backlog');
   const [progress, setProgress] = useState(0);
@@ -23,7 +23,12 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
       if (isEdit && objective) {
         setTitle(objective.title || '');
         setDescription(objective.description || '');
-        setAssignedTo(objective.assignedTo?._id || objective.assignedTo || '');
+        const selectedAssignees = objective.assignees?.length
+          ? objective.assignees.map((assignee) => assignee?._id || assignee)
+          : objective.assignedTo
+            ? [objective.assignedTo?._id || objective.assignedTo]
+            : [];
+        setAssignedTo(selectedAssignees.map((assignee) => assignee.toString()));
         setPriority(objective.priority || 'Medium');
         setStatus(objective.status || 'Backlog');
         setProgress(objective.progress || 0);
@@ -34,7 +39,7 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
         // Reset for new creation
         setTitle('');
         setDescription('');
-        setAssignedTo('');
+        setAssignedTo([]);
         setPriority('Medium');
         setStatus('Backlog');
         setProgress(0);
@@ -63,7 +68,8 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
         missionId: mission._id,
         title,
         description,
-        assignedTo: assignedTo || null,
+        assignedTo: assignedTo[0] || null,
+        assignees: assignedTo,
         priority,
         status,
         progress: parseInt(progress),
@@ -110,10 +116,35 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
     }
   };
 
+  const assignableSource = members.length
+    ? members
+    : [
+        ...(mission.createdBy ? [mission.createdBy] : []),
+        ...(mission.crew || []),
+      ];
+  const assignableMembers = assignableSource.reduce((members, member) => {
+    if (!member?._id || members.some((item) => String(item._id) === String(member._id))) return members;
+    return [...members, member];
+  }, []);
+  const toggleAssignee = (memberId) => {
+    const normalizedId = String(memberId);
+    setAssignedTo((current) => (
+      current.includes(normalizedId)
+        ? current.filter((id) => id !== normalizedId)
+        : [...current, normalizedId]
+    ));
+  };
+  const clearAssignees = () => setAssignedTo([]);
+  const getMemberRoleLabel = (member) => (
+    member.role === 'Crew' || member.role === 'Team Member' || member.role === 'TeamMember'
+      ? 'Team Member'
+      : 'Project Manager'
+  );
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 py-5 sm:p-5">
           {/* Backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -128,7 +159,7 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
             initial={{ scale: 0.95, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 30 }}
-            className="w-full max-w-xl bg-space-900/90 border border-white/10 rounded-2xl p-6 shadow-2xl overflow-hidden relative z-10"
+            className="relative z-10 max-h-[calc(100dvh-2.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-space-900/95 p-5 shadow-2xl sm:p-6"
           >
             {/* Header */}
             <div className="flex justify-between items-center pb-4 border-b border-white/5 mb-5">
@@ -174,19 +205,59 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label-text">Assign Team Member</label>
-                  <select
-                    className="select-field text-sm"
-                    value={assignedTo}
-                    onChange={(e) => setAssignedTo(e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {mission.crew?.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.name} ({c.role === 'Crew' ? 'Team Member' : 'Project Manager'})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="label-text">Assign Team Members</label>
+                  <div className="rounded-2xl border border-white/10 bg-space-950/45 p-2">
+                    <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-gray-500">
+                        {assignedTo.length} selected
+                      </span>
+                      {assignedTo.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={clearAssignees}
+                          className="text-[10px] font-semibold uppercase tracking-wider text-neon-blue transition hover:text-neon-cyan"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {assignableMembers.map((member) => {
+                        const memberId = String(member._id);
+                        const selected = assignedTo.includes(memberId);
+                        return (
+                          <button
+                            key={memberId}
+                            type="button"
+                            onClick={() => toggleAssignee(memberId)}
+                            className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                              selected
+                                ? 'border-neon-cyan/45 bg-neon-cyan/10 text-white shadow-glow-cyan'
+                                : 'border-white/10 bg-white/[0.03] text-gray-300 hover:border-neon-blue/30 hover:bg-neon-blue/10'
+                            }`}
+                          >
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                              selected ? 'border-neon-cyan bg-neon-cyan text-space-950' : 'border-white/15 bg-white/5 text-transparent'
+                            }`}>
+                              <FiCheck className="text-xs" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-semibold">{member.name || member.email}</span>
+                              <span className="block truncate font-mono text-[9px] uppercase tracking-wider text-gray-500">
+                                {getMemberRoleLabel(member)}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {assignableMembers.length === 0 && (
+                        <p className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-center text-xs text-gray-500">
+                          No team members are available yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-1.5 text-[10px] text-gray-500">Click multiple people to assign shared task ownership.</p>
                 </div>
 
                 <div>
@@ -293,7 +364,7 @@ const ObjectiveDetailModal = ({ isOpen, onClose, objective, mission, onSave }) =
               </div>
 
               {/* Actions Bar */}
-              <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-6">
+              <div className="sticky bottom-0 -mx-5 flex items-center justify-between border-t border-white/5 bg-space-900/95 px-5 pt-4 mt-6 pb-1 backdrop-blur-xl sm:-mx-6 sm:px-6">
                 {isEdit ? (
                   <button
                     type="button"

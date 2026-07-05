@@ -37,7 +37,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-space-950 flex items-center justify-center p-4 relative overflow-hidden font-body text-white">
-      <img src="/images/space_background.webp" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-75" />
       <StarBackground />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(14,165,233,0.18),transparent_28%),linear-gradient(135deg,rgba(2,6,23,0.96),rgba(10,14,39,0.72),rgba(2,6,23,0.96))] pointer-events-none z-0"></div>
 

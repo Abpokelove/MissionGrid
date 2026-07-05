@@ -1,15 +1,9 @@
 import React from 'react';
-import { FiNavigation } from 'react-icons/fi';
+import { FiNavigation, FiUsers } from 'react-icons/fi';
 import GlassCard from './GlassCard';
 
 const CrewWorkloadCard = ({ workload = [] }) => {
-  const crew = workload.length
-    ? workload
-    : [
-        { user: { name: 'Commander Nova', role: 'Captain' }, activeCount: 5, blockedCount: 1, overdueCount: 0 },
-        { user: { name: 'Aria Chen', role: 'Crew' }, activeCount: 4, blockedCount: 1, overdueCount: 1 },
-        { user: { name: 'Rex Dalton', role: 'Crew' }, activeCount: 3, blockedCount: 0, overdueCount: 0 },
-      ];
+  const crew = workload;
   const max = Math.max(...crew.map((item) => item.activeCount), 1);
 
   return (
@@ -28,6 +22,15 @@ const CrewWorkloadCard = ({ workload = [] }) => {
       </div>
 
       <div className="space-y-4">
+        {crew.length === 0 && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-center">
+            <FiUsers className="mx-auto text-2xl text-gray-500" />
+            <p className="mt-3 font-display text-sm font-semibold text-white">No Team Workload Yet</p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              Assign tasks to team members and live capacity will appear here.
+            </p>
+          </div>
+        )}
         {crew.slice(0, 5).map((item) => {
           const load = Math.round((item.activeCount / max) * 100);
           const danger = item.blockedCount > 0 || item.overdueCount > 0;

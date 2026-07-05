@@ -5,7 +5,6 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
@@ -13,10 +12,11 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || vercelOriginPattern.test(origin)) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked origin: ${origin}`));
@@ -42,14 +42,26 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  console.log(`MissionGrid server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    const server = app.listen(PORT, () => {
+      console.log(`MissionGrid server running on port ${PORT}`);
+    });
 
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Stop the old Node process or set PORT=5001 in server/.env.`);
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Stop the old Node process or set PORT=5001 in server/.env.`);
+        process.exit(1);
+      }
+      throw error;
+    });
+  } catch {
+    console.error('MissionGrid server did not start because MongoDB is unavailable.');
     process.exit(1);
   }
-  throw error;
-});
+};
+
+startServer();
+
+module.exports = app;

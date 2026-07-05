@@ -4,11 +4,36 @@ const Mission = require('../models/Mission');
 const { recalcMission } = require('./missionController');
 const { ensureRequestWorkspace } = require('../utils/workspaceRepair');
 
+const isProjectManager = (user) => user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
+const isTeamMember = (user) => user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+
+const getId = (value) => (typeof value === 'object' ? value?._id : value);
+
 const isOwnObjective = (objective, userId) =>
-  objective.assignedTo && objective.assignedTo.toString() === userId.toString();
+  (objective.assignedTo && getId(objective.assignedTo)?.toString() === userId.toString()) ||
+  objective.assignees?.some((assignee) => getId(assignee)?.toString() === userId.toString());
+
+const assignmentFilter = (userId) => ({
+  $or: [{ assignedTo: userId }, { assignees: userId }],
+});
+
+const normalizeAssigneeIds = (value) => {
+  const raw = Array.isArray(value) ? value : value ? [value] : [];
+  return [...new Set(
+    raw
+      .map((item) => getId(item))
+      .filter(Boolean)
+      .map((item) => item.toString())
+  )];
+};
+
+const populateObjectiveUsers = (query) =>
+  query
+    .populate('assignedTo', 'name email avatar')
+    .populate('assignees', 'name email avatar');
 
 const captainOnly = async (req, res) => {
-  if (req.user.role !== 'Captain') {
+  if (!isProjectManager(req.user)) {
     res.status(403);
     throw new Error('Only Project Managers can manage objectives');
   }
@@ -89,9 +114,10 @@ const getObjectives = asyncHandler(async (req, res) => {
 
   const objectives = await Objective.find(scopedObjectiveFilter(req, {
     missionId: req.params.missionId,
-    ...(req.user.role === 'Crew' ? { assignedTo: req.user._id } : {}),
+    ...(isTeamMember(req.user) ? assignmentFilter(req.user._id) : {}),
   }))
     .populate('assignedTo', 'name email avatar')
+    .populate('assignees', 'name email avatar')
     .sort({ createdAt: -1 });
 
   res.json(objectives);
@@ -103,8 +129,9 @@ const getObjectives = asyncHandler(async (req, res) => {
 const getMyObjectives = asyncHandler(async (req, res) => {
   await ensureRequestWorkspace(req);
 
-  const objectives = await Objective.find(scopedObjectiveFilter(req, { assignedTo: req.user._id }))
+  const objectives = await Objective.find(scopedObjectiveFilter(req, assignmentFilter(req.user._id)))
     .populate('assignedTo', 'name email avatar')
+    .populate('assignees', 'name email avatar')
     .populate('missionId', 'title status priority deadline progress coreStability')
     .sort({ deadline: 1, updatedAt: -1 });
 
@@ -117,15 +144,16 @@ const getMyObjectives = asyncHandler(async (req, res) => {
 const getObjective = asyncHandler(async (req, res) => {
   await ensureRequestWorkspace(req);
 
-  const objective = await Objective.findOne(scopedObjectiveFilter(req, { _id: req.params.id }))
-    .populate('assignedTo', 'name email avatar');
+  const objective = await populateObjectiveUsers(
+    Objective.findOne(scopedObjectiveFilter(req, { _id: req.params.id }))
+  );
 
   if (!objective) {
     res.status(404);
     throw new Error('Objective not found');
   }
 
-  if (req.user.role === 'Crew' && !isOwnObjective(objective, req.user._id)) {
+  if (isTeamMember(req.user) && !isOwnObjective(objective, req.user._id)) {
     res.status(403);
     throw new Error('You can view only objectives assigned to you');
   }
@@ -144,6 +172,7 @@ const createObjective = asyncHandler(async (req, res) => {
     title,
     description,
     assignedTo,
+    assignees,
     priority,
     status,
     deadline,
@@ -160,12 +189,15 @@ const createObjective = asyncHandler(async (req, res) => {
     throw new Error('Mission not found');
   }
 
+  const selectedAssignees = normalizeAssigneeIds(assignees !== undefined ? assignees : assignedTo);
+
   const objective = await Objective.create({
     missionId,
     workspace: workspace._id,
     title,
     description: description || '',
-    assignedTo: assignedTo || null,
+    assignedTo: selectedAssignees[0] || null,
+    assignees: selectedAssignees,
     priority: priority || 'Medium',
     status: status || 'Backlog',
     progress: 0,
@@ -175,8 +207,7 @@ const createObjective = asyncHandler(async (req, res) => {
   // Recalculate mission progress & stability
   await recalcMission(missionId);
 
-  const populated = await Objective.findById(objective._id)
-    .populate('assignedTo', 'name email avatar');
+  const populated = await populateObjectiveUsers(Objective.findById(objective._id));
 
   res.status(201).json(populated);
 });
@@ -194,15 +225,15 @@ const updateObjective = asyncHandler(async (req, res) => {
     throw new Error('Objective not found');
   }
 
-  if (req.user.role === 'Crew' && !isOwnObjective(objective, req.user._id)) {
+  if (isTeamMember(req.user) && !isOwnObjective(objective, req.user._id)) {
     res.status(403);
     throw new Error('You can update only objectives assigned to you');
   }
 
-  const allowedFields = req.user.role === 'Captain'
+  const allowedFields = isProjectManager(req.user)
     ? [
         'title', 'description', 'assignedTo', 'priority',
-        'status', 'progress', 'deadline', 'isBlocked', 'blockerReason',
+        'assignees', 'status', 'progress', 'deadline', 'isBlocked', 'blockerReason',
       ]
     : ['status', 'progress'];
 
@@ -214,9 +245,17 @@ const updateObjective = asyncHandler(async (req, res) => {
   });
 
   const normalizedUpdates = applyStatusProgressRules(objective, updatedFields);
+  if (isProjectManager(req.user) && (updatedFields.assignees !== undefined || updatedFields.assignedTo !== undefined)) {
+    const selectedAssignees = normalizeAssigneeIds(
+      updatedFields.assignees !== undefined ? updatedFields.assignees : updatedFields.assignedTo
+    );
+    normalizedUpdates.assignees = selectedAssignees;
+    normalizedUpdates.assignedTo = selectedAssignees[0] || null;
+  }
 
-  const updated = await Objective.findOneAndUpdate(scopedObjectiveFilter(req, { _id: req.params.id }), normalizedUpdates, { new: true })
-    .populate('assignedTo', 'name email avatar');
+  const updated = await populateObjectiveUsers(
+    Objective.findOneAndUpdate(scopedObjectiveFilter(req, { _id: req.params.id }), normalizedUpdates, { new: true })
+  );
 
   // Recalculate parent mission
   await recalcMission(objective.missionId);

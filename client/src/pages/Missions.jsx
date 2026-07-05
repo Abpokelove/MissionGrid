@@ -6,38 +6,6 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/useAuth';
 
-const demoMissions = [
-  {
-    _id: 'demo-mission-1',
-    title: 'Operation Nebula Frontend',
-    description: 'Build and polish the product interface, command center, and mission workspace.',
-    category: 'Development',
-    status: 'Active',
-    priority: 'High',
-    progress: 68,
-    coreStability: 78,
-    deadline: new Date(Date.now() + 5 * 86400000).toISOString(),
-    crew: [
-      { _id: 'demo-user-1', name: 'Commander Nova', role: 'Captain', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Commander%20Nova&backgroundColor=0ea5e9' },
-      { _id: 'demo-user-2', name: 'Aria Chen', role: 'Crew', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Aria%20Chen&backgroundColor=8b5cf6' },
-    ],
-  },
-  {
-    _id: 'demo-mission-2',
-    title: 'Quantum API Infrastructure',
-    description: 'Stabilize API services, authentication, analytics endpoints, and seed workflows.',
-    category: 'Infrastructure',
-    status: 'Active',
-    priority: 'Critical',
-    progress: 42,
-    coreStability: 61,
-    deadline: new Date(Date.now() + 9 * 86400000).toISOString(),
-    crew: [
-      { _id: 'demo-user-3', name: 'Rex Dalton', role: 'Crew', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Rex%20Dalton&backgroundColor=f59e0b' },
-    ],
-  },
-];
-
 const Missions = () => {
   const { user } = useAuth();
   const [missions, setMissions] = useState([]);
@@ -55,9 +23,9 @@ const Missions = () => {
       setMissions(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load missions:', error);
-      setMissions(demoMissions);
-      setError('Project API is offline. Showing demo projects.');
-      toast.error('Project API is offline. Demo projects loaded.');
+      setMissions([]);
+      setError('Project API is unavailable. Retry when the backend is online.');
+      toast.error('Project API is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -65,11 +33,6 @@ const Missions = () => {
 
   const handleDelete = async (id, title, e) => {
     e.preventDefault(); // Prevent navigating to workspace
-    if (id?.startsWith?.('demo-')) {
-      toast.error('Demo projects cannot be deleted.');
-      return;
-    }
-
     if (!window.confirm(`Delete "${title}"? This will also delete its tasks.`)) {
       return;
     }
@@ -248,7 +211,7 @@ const Missions = () => {
 
               <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-white/[0.025] px-5 py-3">
                 <Link
-                  to={m._id?.startsWith?.('demo-') ? '/missions' : `/missions/${m._id}`}
+                  to={`/missions/${m._id}`}
                   className="btn-secondary px-3 py-2 text-xs"
                 >
                   Open Project
@@ -256,7 +219,7 @@ const Missions = () => {
                 {isCaptain && (
                   <div className="flex items-center gap-2">
                     <Link
-                      to={m._id?.startsWith?.('demo-') ? '/missions/create' : `/missions/${m._id}/edit`}
+                      to={`/missions/${m._id}/edit`}
                       className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-400 transition-colors hover:text-white"
                       title="Edit project"
                       aria-label={`Edit ${m.title}`}

@@ -23,7 +23,7 @@ API.interceptors.request.use((config) => {
 export const getAPIErrorMessage = (error, fallback = 'MissionGrid API request failed') => {
   if (error?.response?.data?.message) return error.response.data.message;
   if (error?.code === 'ECONNABORTED') return 'MissionGrid API timed out. Check the backend server.';
-  if (error?.message === 'Network Error') return 'MissionGrid API is unreachable. Start the backend or use demo fallback.';
+  if (error?.message === 'Network Error') return 'MissionGrid API is unreachable. Start the backend and verify VITE_API_URL.';
   return error?.message || fallback;
 };
 

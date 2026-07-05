@@ -31,7 +31,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sticky top-0 z-30 flex min-h-screen w-[76px] flex-col justify-between border-r border-white/10 bg-space-950/82 backdrop-blur-2xl transition-[width] duration-300 lg:w-[270px]">
+    <aside className="fixed inset-y-0 left-0 z-30 flex h-dvh w-[76px] flex-col justify-between overflow-hidden border-r border-white/10 bg-space-950/88 backdrop-blur-2xl transition-[width] duration-300 lg:w-[270px]">
       <div>
         <div className="flex items-center justify-center gap-3 border-b border-white/5 p-4 lg:justify-start lg:p-5">
           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-neon-blue/25 bg-white/8 shadow-glow-blue">
@@ -80,9 +80,9 @@ const Sidebar = () => {
 
       <div className="border-t border-white/5 p-3 lg:p-4">
         <div className="mb-4 flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-2 lg:justify-start">
-          <InitialAvatar name={user?.name || 'Commander Nova'} size="sm" />
+          <InitialAvatar name={user?.name || 'Project Manager'} size="sm" />
           <div className="hidden min-w-0 flex-1 lg:block">
-            <p className="truncate text-sm font-semibold text-white">{user?.name || 'Commander Nova'}</p>
+            <p className="truncate text-sm font-semibold text-white">{user?.name || 'Project Manager'}</p>
             <p className="truncate text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
               {isTeamMember ? 'Team Member' : 'Project Manager'}
             </p>

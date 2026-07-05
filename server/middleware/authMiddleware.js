@@ -19,9 +19,15 @@ const protect = asyncHandler(async (req, res, next) => {
 
       return next();
     } catch (error) {
-      console.error('Auth middleware error:', error.message);
-      res.status(401);
-      throw new Error('Not authorized - invalid token');
+      const tokenErrorNames = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'];
+      if (tokenErrorNames.includes(error.name)) {
+        res.status(401);
+        throw new Error('Not authorized - invalid token');
+      }
+
+      console.error('Auth middleware database error:', error.message);
+      res.status(503);
+      throw new Error('Database connection unavailable. Check MongoDB connection settings.');
     }
   }
 

@@ -28,6 +28,12 @@ const objectiveSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    assignees: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     priority: {
       type: String,
       enum: ['Low', 'Medium', 'High', 'Critical'],
@@ -66,8 +72,10 @@ const objectiveSchema = new mongoose.Schema(
 // Indexes for efficient queries
 objectiveSchema.index({ workspace: 1, status: 1 });
 objectiveSchema.index({ workspace: 1, assignedTo: 1 });
+objectiveSchema.index({ workspace: 1, assignees: 1 });
 objectiveSchema.index({ missionId: 1, status: 1 });
 objectiveSchema.index({ assignedTo: 1 });
+objectiveSchema.index({ assignees: 1 });
 objectiveSchema.index({ deadline: 1 });
 
 module.exports = mongoose.model('Objective', objectiveSchema);

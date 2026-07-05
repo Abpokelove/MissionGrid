@@ -2,6 +2,9 @@ const asyncHandler = require('express-async-handler');
 const Mission = require('../models/Mission');
 const Objective = require('../models/Objective');
 
+const isProjectManager = (user) => user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
+const isTeamMember = (user) => user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+
 const missionScope = (req, extra = {}) => {
   if (req.user.workspace) {
     return { workspace: req.user.workspace, ...extra };
@@ -16,9 +19,23 @@ const missionScope = (req, extra = {}) => {
 const objectiveScope = (req, missionIds, extra = {}) => ({
   missionId: { $in: missionIds },
   ...(req.user.workspace ? { workspace: req.user.workspace } : {}),
-  ...(req.user.role === 'Crew' ? { assignedTo: req.user._id } : {}),
   ...extra,
 });
+
+const assignmentFilter = (userId) => ({
+  $or: [{ assignedTo: userId }, { assignees: userId }],
+});
+
+const scopedObjectives = (req, missionIds, extra = {}) => {
+  const base = objectiveScope(req, missionIds, extra);
+  if (!isTeamMember(req.user)) return base;
+  return { $and: [base, assignmentFilter(req.user._id)] };
+};
+
+const getObjectiveAssignees = (objective) => {
+  if (objective.assignees?.length) return objective.assignees;
+  return objective.assignedTo ? [objective.assignedTo] : [];
+};
 
 // @desc    Get dashboard stats
 // @route   GET /api/analytics/dashboard
@@ -28,16 +45,16 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
   const missionIds = missions.map((m) => m._id);
 
-  const objectives = await Objective.find(objectiveScope(req, missionIds));
+  const objectives = await Objective.find(scopedObjectives(req, missionIds));
 
   const now = new Date();
 
   const totalMissions = missions.length;
-  const activeMissions = missions.filter((m) => m.status === 'Active').length;
+  const activeMissions = missions.filter((m) => ['Planning', 'Active', 'Paused'].includes(m.status)).length;
   const completedMissions = missions.filter((m) => m.status === 'Completed').length;
   const totalObjectives = objectives.length;
   const completedObjectives = objectives.filter((o) => o.status === 'Completed').length;
-  const inProgressObjectives = objectives.filter((o) => o.status === 'In Progress').length;
+  const inProgressObjectives = objectives.filter((o) => ['To Do', 'In Progress', 'Review'].includes(o.status)).length;
   const blockedObjectives = objectives.filter((o) => o.isBlocked).length;
   const overdueObjectives = objectives.filter(
     (o) => o.deadline && new Date(o.deadline) < now && o.status !== 'Completed'
@@ -54,11 +71,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     : 100;
 
   // Recent objectives (last 5 updated)
-  const recentObjectives = await Objective.find(objectiveScope(req, missionIds))
+  const recentObjectives = await Objective.find(scopedObjectives(req, missionIds, { status: { $ne: 'Completed' } }))
     .populate('assignedTo', 'name avatar')
+    .populate('assignees', 'name avatar')
     .populate('missionId', 'title')
     .sort({ updatedAt: -1 })
-    .limit(5);
+    .limit(8);
 
   res.json({
     totalMissions,
@@ -94,7 +112,7 @@ const getMissionProgress = asyncHandler(async (req, res) => {
     throw new Error('Mission not found');
   }
 
-  const objectives = await Objective.find(objectiveScope(req, [req.params.id]));
+  const objectives = await Objective.find(scopedObjectives(req, [req.params.id]));
 
   const statusBreakdown = {
     Backlog: 0,
@@ -126,7 +144,7 @@ const getCoreStability = asyncHandler(async (req, res) => {
     throw new Error('Mission not found');
   }
 
-  const objectives = await Objective.find(objectiveScope(req, [req.params.missionId]));
+  const objectives = await Objective.find(scopedObjectives(req, [req.params.missionId]));
   const now = new Date();
 
   const total = objectives.length;
@@ -160,23 +178,25 @@ const getWorkload = asyncHandler(async (req, res) => {
 
   const missionIds = missions.map((m) => m._id);
 
-  const objectives = await Objective.find(objectiveScope(req, missionIds, {
+  const objectives = await Objective.find(scopedObjectives(req, missionIds, {
     status: { $ne: 'Completed' },
-  })).populate('assignedTo', 'name email avatar');
+  }))
+    .populate('assignedTo', 'name email avatar')
+    .populate('assignees', 'name email avatar');
 
   // Group by assignee
   const workloadMap = {};
 
   objectives.forEach((o) => {
-    if (o.assignedTo) {
-      const key = o.assignedTo._id.toString();
+    getObjectiveAssignees(o).forEach((assignee) => {
+      const key = assignee._id.toString();
       if (!workloadMap[key]) {
         workloadMap[key] = {
           user: {
-            _id: o.assignedTo._id,
-            name: o.assignedTo.name,
-            email: o.assignedTo.email,
-            avatar: o.assignedTo.avatar,
+            _id: assignee._id,
+            name: assignee.name,
+            email: assignee.email,
+            avatar: assignee.avatar,
           },
           activeCount: 0,
           blockedCount: 0,
@@ -196,7 +216,7 @@ const getWorkload = asyncHandler(async (req, res) => {
         status: o.status,
         isBlocked: o.isBlocked,
       });
-    }
+    });
   });
 
   const workload = Object.values(workloadMap).sort((a, b) => b.activeCount - a.activeCount);
@@ -231,11 +251,12 @@ const getOverdue = asyncHandler(async (req, res) => {
   const missionIds = missions.map((m) => m._id);
   const now = new Date();
 
-  const overdue = await Objective.find(objectiveScope(req, missionIds, {
+  const overdue = await Objective.find(scopedObjectives(req, missionIds, {
     deadline: { $lt: now },
     status: { $ne: 'Completed' },
   }))
     .populate('assignedTo', 'name avatar')
+    .populate('assignees', 'name avatar')
     .populate('missionId', 'title')
     .sort({ deadline: 1 });
 
@@ -255,7 +276,7 @@ const getCometAlerts = asyncHandler(async (req, res) => {
   const alerts = [];
 
   // Mission-level comet alerts are manager-facing. Team members get alerts for assigned objectives.
-  if (req.user.role === 'Captain') {
+  if (isProjectManager(req.user)) {
     for (const mission of missions) {
       if (!mission.deadline) continue;
 
@@ -310,7 +331,7 @@ const getCometAlerts = asyncHandler(async (req, res) => {
   }
 
   // Objective-level alerts
-  const objectives = await Objective.find(objectiveScope(req, missionIds, {
+  const objectives = await Objective.find(scopedObjectives(req, missionIds, {
     deadline: { $ne: null },
     status: { $ne: 'Completed' },
   })).populate('missionId', 'title');

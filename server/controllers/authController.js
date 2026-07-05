@@ -241,10 +241,16 @@ const getMe = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/users
 // @access  Private
 const getUsers = asyncHandler(async (req, res) => {
-  await ensureUserWorkspace(req.user);
-  const filter = req.user.workspace ? { workspace: req.user.workspace } : { _id: req.user._id };
-  const users = await User.find(filter).select('name email role avatar workspace');
-  res.json(users);
+  const workspace = await ensureUserWorkspace(req.user);
+
+  if (workspace?._id) {
+    const currentWorkspace = await Workspace.findById(workspace._id).populate('members', 'name email role avatar workspace');
+    const members = currentWorkspace?.members || [];
+    return res.json(members);
+  }
+
+  const users = await User.find({ _id: req.user._id }).select('name email role avatar workspace');
+  return res.json(users);
 });
 
 module.exports = { registerUser, registerCaptain, joinTeam, loginUser, getMe, getUsers };

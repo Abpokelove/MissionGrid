@@ -41,15 +41,17 @@ export const AuthProvider = ({ children }) => {
           setUser(data);
           localStorage.setItem('mg_user', JSON.stringify(data));
           setAuthError(null);
-        } catch {
+        } catch (error) {
           const cachedUser = readStoredUser();
-          const fallbackUser = cachedUser || {
-            name: 'Offline Commander',
-            email: 'offline@missiongrid.local',
-            role: 'Captain',
-          };
-          setUser(fallbackUser);
-          setAuthError('Live identity uplink is offline. Showing cached command access.');
+          if (cachedUser) {
+            setUser(cachedUser);
+            setAuthError('Could not verify the current session. Showing cached account data until the API reconnects.');
+          } else {
+            localStorage.removeItem('mg_token');
+            setToken(null);
+            setUser(null);
+            setAuthError(getAPIErrorMessage(error, 'Could not verify the current session'));
+          }
         }
       }
       setLoading(false);

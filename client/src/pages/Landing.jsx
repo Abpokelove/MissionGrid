@@ -29,29 +29,36 @@ const roleCards = [
 const Landing = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-space-950 text-white font-body">
-      <img
-        src="/images/space_background.webp"
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover opacity-80"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_28%,rgba(14,165,233,0.20),transparent_28%),linear-gradient(90deg,rgba(2,6,23,0.94)_0%,rgba(2,6,23,0.62)_48%,rgba(2,6,23,0.92)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_24%,rgba(14,165,233,0.22),transparent_28%),radial-gradient(circle_at_78%_76%,rgba(139,92,246,0.18),transparent_34%),linear-gradient(115deg,rgba(2,6,23,0.98)_0%,rgba(8,16,39,0.86)_52%,rgba(2,6,23,0.98)_100%)]" />
       <StarBackground />
 
       <motion.img
         src="/images/the_comet.png"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute -right-36 -top-28 z-0 w-[560px] max-w-none rotate-[18deg] object-contain opacity-[0.56] mix-blend-screen blur-[0.2px] drop-shadow-[0_0_70px_rgba(245,158,11,0.58)] sm:w-[720px] lg:-right-44 lg:-top-40 lg:w-[920px]"
-        initial={{ opacity: 0, x: 180, y: -80, scale: 0.9 }}
-        animate={{ opacity: [0.45, 0.64, 0.52], x: [60, 0, 60], y: [-16, 18, -16], scale: [0.98, 1.02, 0.98] }}
-        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute -right-24 top-4 z-0 w-[520px] max-w-none rotate-[32deg] object-contain opacity-[0.58] mix-blend-screen blur-[0.2px] drop-shadow-[0_0_70px_rgba(245,158,11,0.58)] sm:w-[680px] lg:right-[5%] lg:top-[-20%] lg:w-[800px]"
+        initial={{ opacity: 0, x: 180, y: -90, scale: 0.9 }}
+        animate={{ opacity: [0.48, 0.66, 0.54], x: [58, 2, 58], y: [-30, 16, -30], scale: [0.98, 1.03, 0.98] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.img
+        src="/images/earth.webp"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-50 -left-10 z-0 h-[30rem] w-[30rem] rounded-full object-cover opacity-[0.58] mix-blend-screen drop-shadow-[0_0_90px_rgba(14,165,233,0.38)] sm:-left-48 sm:h-[38rem] sm:w-[38rem] lg:-bottom-90 lg:-left-10 lg:h-[52rem] lg:w-[52rem]"
+        style={{
+          WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 48%, rgba(0,0,0,0.22) 72%, transparent 82%)',
+          maskImage: 'radial-gradient(circle, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.78) 48%, rgba(0,0,0,0.22) 72%, transparent 82%)',
+        }}
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: [0.5, 0.64, 0.56], scale: [0.98, 1.01, 0.98] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-neon-blue/40 bg-neon-blue/15 shadow-glow-blue">
-            <span className="font-display text-xl font-black tracking-widest">MG</span>
+          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-neon-blue/40 bg-neon-blue/15 shadow-glow-blue">
+            <img src="/images/MissionGrid_logo.ico" alt="MissionGrid" className="h-10 w-10 object-contain" />
           </div>
           <div className="leading-tight">
             <p className="font-display text-lg font-bold tracking-wider">

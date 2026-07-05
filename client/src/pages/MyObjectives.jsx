@@ -8,27 +8,6 @@ import { useAuth } from '../context/useAuth';
 import EmptyState from '../components/EmptyState';
 import GlassCard from '../components/command/GlassCard';
 
-const demoObjectives = [
-  {
-    _id: 'demo-assigned-1',
-    title: 'Blend comet and orbit assets into cinematic overlays',
-    status: 'In Progress',
-    priority: 'High',
-    progress: 55,
-    deadline: new Date(Date.now() + 2 * 86400000).toISOString(),
-    missionId: { title: 'Operation Nebula Frontend', status: 'Active' },
-  },
-  {
-    _id: 'demo-assigned-2',
-    title: 'Add assigned objectives endpoint',
-    status: 'To Do',
-    priority: 'High',
-    progress: 10,
-    deadline: new Date(Date.now() + 6 * 86400000).toISOString(),
-    missionId: { title: 'Quantum API Infrastructure', status: 'Active' },
-  },
-];
-
 const statuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Completed'];
 
 const MyObjectives = () => {
@@ -46,10 +25,10 @@ const MyObjectives = () => {
       setObjectives(Array.isArray(data) ? data : []);
       setSource('live');
     } catch (err) {
-      setObjectives(demoObjectives);
-      setSource('demo');
+      setObjectives([]);
+      setSource('offline');
       setError(getAPIErrorMessage(err, 'Could not load assigned tasks'));
-      toast.error('Assigned tasks API offline. Demo tasks loaded.');
+      toast.error('Assigned tasks API is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -60,14 +39,6 @@ const MyObjectives = () => {
   }, [loadObjectives]);
 
   const updateObjective = async (objective, payload) => {
-    if (objective._id?.startsWith?.('demo-')) {
-      setObjectives((current) =>
-        current.map((item) => (item._id === objective._id ? { ...item, ...payload } : item))
-      );
-      toast.success('Demo task updated locally');
-      return;
-    }
-
     try {
       const { data } = await objectiveAPI.update(objective._id, payload);
       setObjectives((current) => current.map((item) => (item._id === objective._id ? data : item)));
@@ -96,7 +67,7 @@ const MyObjectives = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-blue">
-            {source === 'live' ? 'Live Workspace' : 'Demo Fallback'}
+            {source === 'live' ? 'Live Workspace' : 'API Offline'}
           </p>
           <h1 className="page-title text-white">My Tasks</h1>
           <p className="mt-1 text-sm text-gray-400">

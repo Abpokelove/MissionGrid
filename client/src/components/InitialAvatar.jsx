@@ -2,7 +2,7 @@ import React from 'react';
 
 const toneMap = ['from-neon-blue to-neon-cyan', 'from-neon-violet to-neon-pink', 'from-neon-amber to-neon-red', 'from-emerald-400 to-neon-cyan'];
 
-const InitialAvatar = ({ name = 'Commander Nova', size = 'md', className = '' }) => {
+const InitialAvatar = ({ name = 'Project Manager', size = 'md', className = '' }) => {
   const initials = name
     .split(' ')
     .filter(Boolean)

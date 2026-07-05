@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { missionAPI, objectiveAPI } from '../services/api';
+import { authAPI, missionAPI, objectiveAPI } from '../services/api';
 import { FiArrowLeft, FiEdit3, FiCompass, FiLayers, FiRadio, FiPlus, FiAlertTriangle, FiAlertOctagon } from 'react-icons/fi';
 import ObjectiveDetailModal from '../components/ObjectiveDetailModal';
 import OrbitView from '../components/command/OrbitView';
@@ -13,20 +13,27 @@ const MissionWorkspace = () => {
   const { user } = useAuth();
   const [mission, setMission] = useState(null);
   const [objectives, setObjectives] = useState([]);
+  const [workspaceUsers, setWorkspaceUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview'); // overview, kanban, orbit
 
   // Objective details modal controls
   const [selectedObjective, setSelectedObjective] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draggingObjectiveId, setDraggingObjectiveId] = useState(null);
   const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
   const isCaptain = !isTeamMember;
 
   const fetchWorkspaceTelemetry = useCallback(async () => {
     try {
-      const { data } = await missionAPI.getOne(id);
+      const [missionResult, usersResult] = await Promise.all([
+        missionAPI.getOne(id),
+        authAPI.getUsers(),
+      ]);
+      const { data } = missionResult;
       setMission(data.mission);
       setObjectives(data.objectives);
+      setWorkspaceUsers(Array.isArray(usersResult.data) ? usersResult.data : []);
     } catch (error) {
       console.error('Failed to load project workspace:', error);
       toast.error('Unable to load project workspace');
@@ -60,6 +67,30 @@ const MissionWorkspace = () => {
       console.error('Failed to update status:', error);
       toast.error('Could not update task status');
     }
+  };
+
+  const handleDragStart = (event, objective) => {
+    if (!isCaptain) return;
+    setDraggingObjectiveId(objective._id);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', objective._id);
+  };
+
+  const handleColumnDrop = async (event, status) => {
+    event.preventDefault();
+    if (!isCaptain) return;
+
+    const objectiveId = event.dataTransfer.getData('text/plain') || draggingObjectiveId;
+    const objective = objectives.find((item) => item._id === objectiveId);
+    setDraggingObjectiveId(null);
+
+    if (!objective || objective.status === status) return;
+    await handleStatusChange(objective, status);
+  };
+
+  const getObjectiveAssignees = (objective) => {
+    if (objective.assignees?.length) return objective.assignees.filter(Boolean);
+    return objective.assignedTo ? [objective.assignedTo] : [];
   };
 
   const getCoreStabilityColor = (score) => {
@@ -243,7 +274,7 @@ const MissionWorkspace = () => {
                 <h3 className="font-display font-semibold text-sm text-white mb-4 self-stretch text-left">Project Health</h3>
                 
                 <div className="relative w-40 h-40 flex items-center justify-center mb-4">
-                  {/* Planet core rotating graphic fallback */}
+                  {/* Planet core rotating graphic */}
                   <img
                     src="/images/planet_core.webp"
                     alt="Project health core"
@@ -308,7 +339,16 @@ const MissionWorkspace = () => {
             ].map((col) => {
               const colObjectives = objectives.filter(o => o.status === col.id);
               return (
-                <div key={col.id} className="flex-1 min-w-[220px] flex flex-col rounded-xl bg-space-900/40 border border-white/5 p-3.5 min-h-[500px]">
+                <div
+                  key={col.id}
+                  onDragOver={(event) => {
+                    if (isCaptain) event.preventDefault();
+                  }}
+                  onDrop={(event) => handleColumnDrop(event, col.id)}
+                  className={`flex min-h-[500px] min-w-[220px] flex-1 flex-col rounded-xl border p-3.5 transition ${
+                    draggingObjectiveId ? 'border-neon-blue/30 bg-neon-blue/10' : 'border-white/5 bg-space-900/40'
+                  }`}
+                >
                   {/* Column Header */}
                   <div className="flex justify-between items-center pb-3.5 border-b border-white/5 mb-4">
                     <span className="font-display font-bold text-xs uppercase tracking-widest text-white">
@@ -321,11 +361,18 @@ const MissionWorkspace = () => {
 
                   {/* Cards container */}
                   <div className="space-y-3.5 flex-1 overflow-y-auto max-h-[520px] pr-1">
-                    {colObjectives.map((o) => (
+                    {colObjectives.map((o) => {
+                      const assignees = getObjectiveAssignees(o);
+                      const primaryAssignee = assignees[0];
+
+                      return (
                       <div
                         key={o._id}
+                        draggable={isCaptain}
+                        onDragStart={(event) => handleDragStart(event, o)}
+                        onDragEnd={() => setDraggingObjectiveId(null)}
                         onClick={() => isCaptain && handleEditObjectiveOpen(o)}
-                        className={`glass-card relative flex min-h-[168px] flex-col justify-between p-3.5 transition-all hover:border-white/20 ${isCaptain ? 'cursor-pointer' : ''} ${
+                        className={`glass-card relative flex min-h-[168px] flex-col justify-between p-3.5 transition-all hover:border-white/20 ${isCaptain ? 'cursor-grab active:cursor-grabbing' : ''} ${
                           o.isBlocked ? 'border-red-500/20' : ''
                         }`}
                       >
@@ -352,19 +399,24 @@ const MissionWorkspace = () => {
                         </h4>
 
                         <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] p-2">
-                          {o.assignedTo?.avatar ? (
+                          {primaryAssignee?.avatar ? (
                             <img
-                              src={o.assignedTo.avatar}
-                              alt={o.assignedTo.name}
+                              src={primaryAssignee.avatar}
+                              alt={primaryAssignee.name}
                               className="h-9 w-9 max-h-9 max-w-9 shrink-0 rounded-xl border border-white/10 object-cover"
-                              title={o.assignedTo.name}
+                              title={primaryAssignee.name}
                             />
                           ) : (
-                            <InitialAvatar name={o.assignedTo?.name || 'Unassigned'} size="sm" />
+                            <InitialAvatar name={primaryAssignee?.name || 'Unassigned'} size="sm" />
                           )}
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-white">{o.assignedTo?.name || 'Unassigned'}</p>
-                            <p className="mt-0.5 text-[9px] font-mono uppercase tracking-wider text-gray-500">Assignee</p>
+                            <p className="truncate text-xs font-semibold text-white">
+                              {primaryAssignee?.name || 'Unassigned'}
+                              {assignees.length > 1 && <span className="ml-1 text-neon-cyan">+{assignees.length - 1}</span>}
+                            </p>
+                            <p className="mt-0.5 text-[9px] font-mono uppercase tracking-wider text-gray-500">
+                              {assignees.length > 1 ? 'Shared task' : 'Assignee'}
+                            </p>
                           </div>
                         </div>
 
@@ -407,7 +459,8 @@ const MissionWorkspace = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {colObjectives.length === 0 && (
                       <p className="text-[10px] text-center text-gray-600 font-mono py-8 border border-dashed border-white/5 rounded-xl">
                         Column empty
@@ -437,6 +490,7 @@ const MissionWorkspace = () => {
           onClose={() => setIsModalOpen(false)}
           objective={selectedObjective}
           mission={mission}
+          members={workspaceUsers}
           onSave={fetchWorkspaceTelemetry}
         />
       )}

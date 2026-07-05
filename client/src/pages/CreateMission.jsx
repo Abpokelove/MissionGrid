@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { missionAPI, authAPI, objectiveAPI } from '../services/api';
 import { FiArrowLeft, FiCpu, FiCheck, FiInfo } from 'react-icons/fi';
@@ -27,8 +27,8 @@ const CreateMission = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadMetadata = async () => {
+  const loadMetadata = useCallback(async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       try {
         const usersRes = await authAPI.getUsers();
         setUsers(usersRes.data);
@@ -55,10 +55,25 @@ const CreateMission = () => {
       } finally {
         setLoading(false);
       }
+  }, [id, isEditMode]);
+
+  useEffect(() => {
+    loadMetadata();
+  }, [loadMetadata]);
+
+  useEffect(() => {
+    const refreshOnFocus = () => loadMetadata({ silent: true });
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') refreshOnFocus();
     };
 
-    loadMetadata();
-  }, [id, isEditMode]);
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
+  }, [loadMetadata]);
 
   // Crew selection helper
   const handleCrewToggle = (userId) => {
@@ -94,7 +109,7 @@ const CreateMission = () => {
         { title: 'Design database schemas & validations', priority: 'High', desc: 'Create Mongoose models & database indexing structures.' },
         { title: 'Build REST endpoints with CORS & error handlers', priority: 'High', desc: 'Setup standard Express route structures.' },
         { title: 'Implement JWT secure authentication flow middleware', priority: 'Critical', desc: 'Hash password & secure telemetry payloads.' },
-        { title: 'Deploy seed script containing demo configurations', priority: 'Low', desc: 'Populate Atlas nodes with demo telemetry.' },
+        { title: 'Prepare production seed and migration checks', priority: 'Low', desc: 'Verify database setup, indexes, and repeatable setup commands.' },
       );
     }
 
@@ -304,7 +319,16 @@ const CreateMission = () => {
 
             {/* Crew Selection */}
             <div>
-              <label className="label-text">Team Members ({selectedCrew.length})</label>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <label className="label-text mb-0">Team Members ({selectedCrew.length})</label>
+                <button
+                  type="button"
+                  onClick={() => loadMetadata({ silent: true })}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-gray-300 transition hover:border-neon-blue/30 hover:text-white"
+                >
+                  Refresh Team
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2.5 max-h-40 overflow-y-auto p-2 bg-space-950/40 rounded-xl border border-white/5 pr-1">
                 {users.map((u) => {
                   const isSelected = selectedCrew.includes(u._id);

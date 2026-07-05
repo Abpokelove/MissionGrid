@@ -3,8 +3,11 @@ const Mission = require('../models/Mission');
 const Objective = require('../models/Objective');
 const { ensureRequestWorkspace } = require('../utils/workspaceRepair');
 
+const isProjectManager = (user) => user?.role === 'Captain' || user?.role === 'Project Manager' || user?.role === 'ProjectManager';
+const isTeamMember = (user) => user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
+
 const captainOnly = async (req, res) => {
-  if (req.user.role !== 'Captain') {
+  if (!isProjectManager(req.user)) {
     res.status(403);
     throw new Error('Only Project Managers can change missions');
   }
@@ -27,6 +30,15 @@ const missionScope = (req, extra = {}) => {
     $or: [{ createdBy: req.user._id }, { crew: req.user._id }],
     ...extra,
   };
+};
+
+const assignmentFilter = (userId) => ({
+  $or: [{ assignedTo: userId }, { assignees: userId }],
+});
+
+const objectiveAssigneeIds = (objective) => {
+  if (objective.assignees?.length) return objective.assignees;
+  return objective.assignedTo ? [objective.assignedTo] : [];
 };
 
 // Helper: Recalculate mission progress and core stability from its objectives
@@ -56,10 +68,10 @@ const recalcMission = async (missionId) => {
   // Workload balance: std deviation of objectives per assignee
   const assigneeCounts = {};
   objectives.forEach((o) => {
-    if (o.assignedTo) {
-      const key = o.assignedTo.toString();
+    objectiveAssigneeIds(o).forEach((assigneeId) => {
+      const key = assigneeId.toString();
       assigneeCounts[key] = (assigneeCounts[key] || 0) + 1;
-    }
+    });
   });
 
   const counts = Object.values(assigneeCounts);
@@ -118,11 +130,12 @@ const getMission = asyncHandler(async (req, res) => {
   const objectiveFilter = {
     missionId: mission._id,
     ...(req.user.workspace ? { workspace: req.user.workspace } : {}),
-    ...(req.user.role === 'Crew' ? { assignedTo: req.user._id } : {}),
+    ...(isTeamMember(req.user) ? assignmentFilter(req.user._id) : {}),
   };
 
   const objectives = await Objective.find(objectiveFilter)
     .populate('assignedTo', 'name email avatar')
+    .populate('assignees', 'name email avatar')
     .sort({ createdAt: -1 });
 
   res.json({ mission, objectives });

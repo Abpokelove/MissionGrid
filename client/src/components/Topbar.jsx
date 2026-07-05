@@ -5,10 +5,6 @@ import { FiAlertTriangle, FiBell, FiMic, FiSearch } from 'react-icons/fi';
 import { AnimatePresence, motion } from 'framer-motion';
 import InitialAvatar from './InitialAvatar';
 
-const fallbackAlerts = [
-  { id: 'offline-a1', title: 'API Integration', daysLeft: 2, progress: 38, message: 'Task is near deadline with low progress.', severity: 'warning' },
-];
-
 const Topbar = ({ onVoiceTrigger }) => {
   const { user, authError } = useAuth();
   const [alerts, setAlerts] = useState([]);
@@ -22,7 +18,7 @@ const Topbar = ({ onVoiceTrigger }) => {
         const { data } = await analyticsAPI.getCometAlerts();
         if (mounted) setAlerts(Array.isArray(data) ? data : []);
       } catch {
-        if (mounted) setAlerts(fallbackAlerts);
+        if (mounted) setAlerts([]);
       }
     };
     fetchAlerts();
@@ -40,7 +36,7 @@ const Topbar = ({ onVoiceTrigger }) => {
           <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-blue">System Status</p>
           <div className="mt-1 flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${authError ? 'bg-neon-amber' : 'bg-neon-cyan'} animate-pulse`} />
-            <span className="text-sm font-bold text-white">{authError ? 'Demo Fallback Online' : 'Online'}</span>
+            <span className="text-sm font-bold text-white">{authError ? 'API Attention Needed' : 'Online'}</span>
           </div>
         </div>
 
@@ -131,9 +127,9 @@ const Topbar = ({ onVoiceTrigger }) => {
         </div>
 
         <div className="flex items-center gap-3 border-l border-white/10 pl-3">
-          <InitialAvatar name={user?.name || 'Commander Nova'} size="sm" />
+          <InitialAvatar name={user?.name || 'Project Manager'} size="sm" />
           <div className="hidden lg:block">
-            <p className="text-xs font-semibold tracking-wide text-white">{user?.name || 'Commander Nova'}</p>
+            <p className="text-xs font-semibold tracking-wide text-white">{user?.name || 'Project Manager'}</p>
             <p className="text-[10px] font-mono uppercase tracking-widest text-neon-blue">
               {isTeamMember ? 'Team Member' : 'Project Manager'}
             </p>

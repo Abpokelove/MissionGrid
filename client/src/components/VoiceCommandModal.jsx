@@ -75,7 +75,7 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
     }
     if (title) setParsedTitle(title);
     else if (text.trim() && !title) {
-      // Fallback: use first chunk of text
+      // Use the first chunk of text when no explicit task title is detected.
       const fallbackTitle = text.split(/assign to|assigned to|for|priority|deadline/i)[0].trim();
       setParsedTitle(fallbackTitle);
     }
@@ -247,7 +247,7 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
 
             {/* Glowing Orb / Soundwaves Section */}
             <div className="flex flex-col items-center justify-center py-6 mb-6 rounded-2xl bg-space-950/50 border border-white/5 relative overflow-hidden">
-              {/* Glowing Orb Fallback */}
+              {/* Glowing Orb */}
               <motion.div
                 animate={{
                   scale: isListening ? [1, 1.15, 1] : 1,
@@ -310,7 +310,7 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
                   }}
                   placeholder={
                     supported 
-                      ? 'Say: "Create task Design landing page for Aria Chen priority High deadline next week"'
+                      ? 'Say: "Create task Design landing page for Maya priority High deadline next week"'
                       : 'Speech recognition is not supported in this browser. Type task details here.'
                   }
                 />

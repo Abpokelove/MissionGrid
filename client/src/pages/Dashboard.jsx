@@ -25,62 +25,24 @@ import CometAlertCard from '../components/command/CometAlertCard';
 import CrewWorkloadCard from '../components/command/CrewWorkloadCard';
 import InviteCrewCard from '../components/InviteCrewCard';
 
-const demoStats = {
-  totalMissions: 4,
-  activeMissions: 3,
-  completedMissions: 1,
-  totalObjectives: 24,
-  completedObjectives: 9,
-  inProgressObjectives: 8,
-  blockedObjectives: 2,
-  overdueObjectives: 1,
-  completionRate: 57,
-  avgCoreStability: 76,
-  missions: [
-    { _id: 'demo-m1', title: 'Operation Nebula Frontend', progress: 68, coreStability: 78, status: 'Active', priority: 'High', deadline: new Date(Date.now() + 5 * 86400000).toISOString() },
-    { _id: 'demo-m2', title: 'Quantum API Infrastructure', progress: 42, coreStability: 61, status: 'Active', priority: 'Critical', deadline: new Date(Date.now() + 9 * 86400000).toISOString() },
-    { _id: 'demo-m3', title: 'Galaxy Brand Redesign', progress: 86, coreStability: 92, status: 'Active', priority: 'Medium', deadline: new Date(Date.now() + 18 * 86400000).toISOString() },
-  ],
-  recentObjectives: [
-    { _id: 'demo-o1', title: 'Build orbit analytics cards', status: 'In Progress', progress: 72, priority: 'High', deadline: new Date(Date.now() + 4 * 86400000).toISOString(), assignedTo: { name: 'Aria Chen' } },
-    { _id: 'demo-o2', title: 'Review command center motion pass', status: 'Review', progress: 86, priority: 'Medium', deadline: new Date(Date.now() + 7 * 86400000).toISOString(), assignedTo: { name: 'Luna Park' } },
-    { _id: 'demo-o3', title: 'Clear Redis provision blocker', status: 'To Do', progress: 8, priority: 'Critical', deadline: new Date(Date.now() + 2 * 86400000).toISOString(), isBlocked: true, blockerReason: 'Infrastructure approval pending', assignedTo: { name: 'Rex Dalton' } },
-    { _id: 'demo-o4', title: 'Ship login token validation', status: 'Completed', progress: 100, priority: 'High', assignedTo: { name: 'Commander Nova' } },
-    { _id: 'demo-o5', title: 'Intercept deadline comet', status: 'In Progress', progress: 33, priority: 'Critical', deadline: new Date(Date.now() + 1 * 86400000).toISOString() },
-  ],
+const emptyStats = {
+  totalMissions: 0,
+  activeMissions: 0,
+  completedMissions: 0,
+  totalObjectives: 0,
+  completedObjectives: 0,
+  inProgressObjectives: 0,
+  blockedObjectives: 0,
+  overdueObjectives: 0,
+  completionRate: 0,
+  avgCoreStability: 100,
+  missions: [],
+  recentObjectives: [],
 };
 
-const demoAlerts = [
-  {
-    type: 'mission',
-    stage: 3,
-    id: 'demo-alert-1',
-    title: 'Quantum API Infrastructure',
-    daysLeft: 3,
-    progress: 42,
-    message: 'Critical comet trajectory: API mission needs acceleration.',
-    severity: 'critical',
-  },
-  {
-    type: 'objective',
-    stage: 2,
-    id: 'demo-alert-2',
-    title: 'Clear Redis provision blocker',
-    daysLeft: 2,
-    progress: 8,
-    message: 'Asteroid block is slowing objective progress.',
-    severity: 'warning',
-  },
-];
-
-const demoWorkload = [
-  { user: { name: 'Aria Chen', role: 'Crew' }, activeCount: 6, blockedCount: 1, overdueCount: 0 },
-  { user: { name: 'Rex Dalton', role: 'Crew' }, activeCount: 5, blockedCount: 1, overdueCount: 1 },
-  { user: { name: 'Luna Park', role: 'Crew' }, activeCount: 3, blockedCount: 0, overdueCount: 0 },
-  { user: { name: 'Commander Nova', role: 'Captain' }, activeCount: 2, blockedCount: 0, overdueCount: 0 },
-];
-
 const asArray = (value) => (Array.isArray(value) ? value : []);
+
+const clampValue = (value, min = 0, max = 100) => Math.min(max, Math.max(min, Number(value) || 0));
 
 const getPriorityTone = (priority) => {
   switch (priority) {
@@ -102,22 +64,16 @@ const coreColor = (score) => {
   return '#ef4444';
 };
 
-const demoCrewObjectives = demoStats.recentObjectives.map((objective, index) => ({
-  ...objective,
-  _id: `demo-crew-${index + 1}`,
-  missionId: { title: index % 2 === 0 ? 'Operation Nebula Frontend' : 'Quantum API Infrastructure', status: 'Active' },
-}));
-
 const objectiveStatuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Completed'];
 
 const CrewDashboard = ({ authError }) => {
   const { user } = useAuth();
-  const [objectives, setObjectives] = useState(demoCrewObjectives);
-  const [alerts, setAlerts] = useState(demoAlerts);
-  const [stats, setStats] = useState(demoStats);
+  const [objectives, setObjectives] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [source, setSource] = useState('demo');
+  const [source, setSource] = useState('live');
 
   const loadCrewDashboard = useCallback(async () => {
     setLoading(true);
@@ -132,30 +88,30 @@ const CrewDashboard = ({ authError }) => {
     if (objectivesResult.status === 'fulfilled') {
       setObjectives(asArray(objectivesResult.value.data));
     } else {
-      setObjectives(demoCrewObjectives);
+      setObjectives([]);
     }
 
     if (alertsResult.status === 'fulfilled') {
       setAlerts(asArray(alertsResult.value.data));
     } else {
-      setAlerts(demoAlerts);
+      setAlerts([]);
     }
 
     if (statsResult.status === 'fulfilled') {
-      setStats({ ...demoStats, ...statsResult.value.data });
+      setStats({ ...emptyStats, ...statsResult.value.data });
     } else {
-      setStats(demoStats);
+      setStats(emptyStats);
     }
 
     const hasLiveData = objectivesResult.status === 'fulfilled' || alertsResult.status === 'fulfilled' || statsResult.status === 'fulfilled';
     if (!hasLiveData) {
-      setSource('demo');
+      setSource('offline');
       setError(getAPIErrorMessage(objectivesResult.reason || alertsResult.reason || statsResult.reason));
-      toast.error('Live team dashboard offline. Demo tasks loaded.');
+      toast.error('Live team dashboard is unavailable.');
     } else {
       setSource('live');
       if (objectivesResult.status !== 'fulfilled' || alertsResult.status !== 'fulfilled' || statsResult.status !== 'fulfilled') {
-        setError('Partial live crew dashboard loaded. Some panels are using fallback data.');
+        setError('Some live panels could not load. Retry to refresh missing data.');
       }
     }
 
@@ -167,14 +123,6 @@ const CrewDashboard = ({ authError }) => {
   }, [loadCrewDashboard]);
 
   const updateObjective = async (objective, payload) => {
-    if (objective._id?.startsWith?.('demo-')) {
-      setObjectives((current) => current.map((item) => (
-        item._id === objective._id ? { ...item, ...payload } : item
-      )));
-      toast.success('Demo task updated locally');
-      return;
-    }
-
     try {
       const { data } = await objectiveAPI.update(objective._id, payload);
       setObjectives((current) => current.map((item) => (
@@ -208,7 +156,7 @@ const CrewDashboard = ({ authError }) => {
       >
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-blue">
-            {source === 'live' ? 'Live Team Workspace' : 'Demo Fallback Data'}
+            {source === 'live' ? 'Live Team Workspace' : 'API Offline'}
           </p>
           <h1 className="mt-1 font-display text-3xl font-black text-white lg:text-4xl">
             Team Member Dashboard
@@ -341,7 +289,7 @@ const CrewDashboard = ({ authError }) => {
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {asArray(stats?.missions).slice(0, 3).map((mission) => (
-            <Link key={mission._id || mission.title} to={mission._id?.startsWith?.('demo-') ? '/missions' : `/missions/${mission._id}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-neon-blue/30 hover:bg-neon-blue/10">
+            <Link key={mission._id || mission.title} to={`/missions/${mission._id}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-neon-blue/30 hover:bg-neon-blue/10">
               <p className="line-clamp-1 font-display text-sm font-semibold text-white">{mission.title}</p>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-neon-blue to-neon-violet" style={{ width: `${mission.progress || 0}%` }} />
@@ -360,12 +308,12 @@ const CrewDashboard = ({ authError }) => {
 
 const Dashboard = () => {
   const { user, authError } = useAuth();
-  const [stats, setStats] = useState(demoStats);
-  const [cometAlerts, setCometAlerts] = useState(demoAlerts);
-  const [workload, setWorkload] = useState(demoWorkload);
+  const [stats, setStats] = useState(emptyStats);
+  const [cometAlerts, setCometAlerts] = useState([]);
+  const [workload, setWorkload] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [source, setSource] = useState('demo');
+  const [source, setSource] = useState('live');
   const isTeamMember = user?.role === 'Crew' || user?.role === 'Team Member' || user?.role === 'TeamMember';
 
   const loadDashboard = useCallback(async ({ silent = false } = {}) => {
@@ -384,32 +332,32 @@ const Dashboard = () => {
     const hasLiveData = dashboardOk || alertsOk || workloadOk;
 
     if (dashboardOk) {
-      setStats({ ...demoStats, ...dashboardResult.value.data });
+      setStats({ ...emptyStats, ...dashboardResult.value.data });
     } else {
-      setStats(demoStats);
+      setStats(emptyStats);
     }
 
     if (alertsOk) {
       setCometAlerts(asArray(alertsResult.value.data));
     } else {
-      setCometAlerts(demoAlerts);
+      setCometAlerts([]);
     }
 
     if (workloadOk) {
       setWorkload(asArray(workloadResult.value.data?.workload));
     } else {
-      setWorkload(demoWorkload);
+      setWorkload([]);
     }
 
     if (!hasLiveData) {
       const message = getAPIErrorMessage(dashboardResult.reason || alertsResult.reason || workloadResult.reason);
       setError(message);
-      setSource('demo');
-      toast.error('Live telemetry offline. Demo command feed loaded.');
+      setSource('offline');
+      toast.error('Live telemetry is unavailable.');
     } else {
       setSource('live');
       if (!dashboardOk || !alertsOk || !workloadOk) {
-        setError('Partial live telemetry loaded. Some panels are using fallback data.');
+        setError('Some live panels could not load. Retry to refresh missing data.');
       }
     }
 
@@ -433,6 +381,40 @@ const Dashboard = () => {
   );
 
   const orbitObjectives = useMemo(() => recentObjectives.slice(0, 10), [recentObjectives]);
+  const activeTaskRows = recentObjectives.filter((objective) => objective.status !== 'Completed');
+  const getObjectiveAssignees = (objective) => {
+    const assignees = objective.assignees?.length
+      ? objective.assignees
+      : objective.assignedTo
+        ? [objective.assignedTo]
+        : [];
+    return assignees.filter(Boolean);
+  };
+  const getAssigneeLabel = (objective) => {
+    const assignees = getObjectiveAssignees(objective);
+    if (assignees.length === 0) return 'Unassigned';
+    if (assignees.length === 1) return assignees[0]?.name || 'Unassigned';
+    return `${assignees[0]?.name || 'Team'} +${assignees.length - 1}`;
+  };
+  const completedTaskCount = Number(stats?.completedObjectives) || 0;
+  const inProgressTaskCount = Number(stats?.inProgressObjectives) || 0;
+  const blockedTaskCount = Number(stats?.blockedObjectives) || 0;
+  const deadlineRiskCount = Number(stats?.overdueObjectives) || 0;
+  const openTaskCount = Math.max(0, (Number(stats?.totalObjectives) || 0) - completedTaskCount - inProgressTaskCount);
+  const taskMixSegments = [
+    { label: 'Completed', value: completedTaskCount, color: 'bg-neon-cyan' },
+    { label: 'In Progress', value: inProgressTaskCount, color: 'bg-neon-blue' },
+    { label: 'Open', value: openTaskCount, color: 'bg-neon-violet' },
+    { label: 'Risk', value: deadlineRiskCount + blockedTaskCount, color: 'bg-neon-amber' },
+  ];
+  const taskMixTotal = Math.max(taskMixSegments.reduce((sum, item) => sum + item.value, 0), 1);
+  const assignedActiveTasks = activeTaskRows.filter((objective) => getObjectiveAssignees(objective).length > 0).length;
+  const assignmentCoverage = activeTaskRows.length
+    ? Math.round((assignedActiveTasks / activeTaskRows.length) * 100)
+    : 0;
+  const activeProjectRatio = missions.length
+    ? Math.round(((Number(stats?.activeMissions) || 0) / missions.length) * 100)
+    : 0;
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -454,7 +436,7 @@ const Dashboard = () => {
       >
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-blue">
-            {source === 'live' ? 'Live Data' : 'Demo Fallback Data'}
+            {source === 'live' ? 'Live Data' : 'API Offline'}
           </p>
           <h1 className="mt-1 font-display text-3xl font-black text-white lg:text-4xl">
             Dashboard
@@ -543,19 +525,97 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.75fr)_380px]">
-        <GlassCard className="p-4 lg:p-5" hover={false}>
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Orbit View</p>
-              <h2 className="mt-1 font-display text-lg font-bold text-white">Project Orbit View</h2>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.75fr)_380px]">
+        <div className="space-y-5">
+          <GlassCard className="self-start p-4 lg:p-5" hover={false}>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-cyan">Orbit View</p>
+                <h2 className="mt-1 font-display text-lg font-bold text-white">Project Orbit View</h2>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-400">
+                Click nodes for details
+              </div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-400">
-              Click nodes for details
-            </div>
+            <OrbitView objectives={orbitObjectives} compact />
+          </GlassCard>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <GlassCard className="p-4" hover={false}>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-neon-blue">Task Flow</p>
+                  <h3 className="mt-1 font-display text-base font-bold text-white">Task Distribution</h3>
+                </div>
+                <FiActivity className="text-neon-blue" />
+              </div>
+              <div className="mb-4 flex h-3 overflow-hidden rounded-full border border-white/10 bg-white/5">
+                {taskMixSegments.map((segment) => (
+                  <span
+                    key={segment.label}
+                    className={`${segment.color} h-full`}
+                    style={{ width: `${(segment.value / taskMixTotal) * 100}%` }}
+                  />
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-mono uppercase text-gray-400">
+                {taskMixSegments.map((segment) => (
+                  <div key={segment.label} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${segment.color}`} />
+                      <span className="truncate">{segment.label}</span>
+                    </span>
+                    <span className="text-white">{segment.value}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-4" hover={false}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-neon-cyan">Team Coverage</p>
+                  <h3 className="mt-1 font-display text-base font-bold text-white">Assignment Coverage</h3>
+                </div>
+                <FiTarget className="text-neon-cyan" />
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <ProgressRing value={assignmentCoverage} label="Assigned" color="#06d6a0" size={82} />
+                <div className="text-sm leading-6 text-gray-400">
+                  <span className="block font-mono text-xs text-white">{assignedActiveTasks}/{activeTaskRows.length}</span>
+                  active tasks have at least one assigned team member.
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-4" hover={false}>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-neon-violet">Project Pulse</p>
+                  <h3 className="mt-1 font-display text-base font-bold text-white">Active Projects</h3>
+                </div>
+                <FiCompass className="text-neon-violet" />
+              </div>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="font-display text-3xl font-black text-white">{stats?.activeMissions || 0}</p>
+                  <p className="mt-1 text-xs text-gray-400">of {missions.length} total projects are active.</p>
+                </div>
+                <span className="rounded-xl border border-neon-violet/25 bg-neon-violet/10 px-3 py-2 font-mono text-sm text-neon-violet">
+                  {clampValue(activeProjectRatio)}%
+                </span>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${clampValue(activeProjectRatio)}%` }}
+                  transition={{ duration: 0.8 }}
+                  className="h-full rounded-full bg-gradient-to-r from-neon-blue to-neon-violet"
+                />
+              </div>
+            </GlassCard>
           </div>
-          <OrbitView objectives={orbitObjectives} compact />
-        </GlassCard>
+        </div>
 
         <div className="space-y-5">
           <GlassCard className="p-4 lg:p-5" hover={false}>
@@ -627,7 +687,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <Link to={mission._id?.startsWith?.('demo-') ? '/missions' : `/missions/${mission._id}`} className="truncate font-display text-sm font-semibold text-white hover:text-neon-cyan">
+                      <Link to={`/missions/${mission._id}`} className="truncate font-display text-sm font-semibold text-white hover:text-neon-cyan">
                         {mission.title}
                       </Link>
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -690,7 +750,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {recentObjectives.map((objective) => (
+              {activeTaskRows.map((objective) => (
                 <tr key={objective._id || objective.title} className="border-b border-white/5 last:border-0">
                   <td className="py-4 font-semibold text-white">{objective.title}</td>
                   <td className="py-4">
@@ -699,7 +759,7 @@ const Dashboard = () => {
                     </span>
                     {objective.isBlocked && <span className="ml-2 rounded-md bg-neon-red/10 px-2 py-1 font-mono text-[10px] text-neon-red">BLOCKED</span>}
                   </td>
-                  <td className="py-4 text-gray-300">{objective.assignedTo?.name || 'Unassigned'}</td>
+                  <td className="py-4 text-gray-300">{getAssigneeLabel(objective)}</td>
                   <td className="py-4">
                     <span className={`rounded-md border px-2 py-1 font-mono text-[10px] uppercase ${getPriorityTone(objective.priority)}`}>
                       {objective.priority || 'Medium'}
@@ -718,6 +778,13 @@ const Dashboard = () => {
                   </td>
                 </tr>
               ))}
+              {activeTaskRows.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-xs text-gray-500">
+                    No active tasks yet. Create or assign tasks to populate this board.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

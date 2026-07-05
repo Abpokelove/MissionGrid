@@ -52,10 +52,11 @@ const InviteCrewCard = () => {
   }, [isProjectManager]);
 
   const inviteCode = useMemo(() => {
-    return String(workspace?.inviteCode || user?.inviteCode || 'DEMO123').trim().toUpperCase();
+    return String(workspace?.inviteCode || user?.inviteCode || '').trim().toUpperCase();
   }, [workspace?.inviteCode, user?.inviteCode]);
 
   const inviteLink = useMemo(() => {
+    if (!inviteCode) return '';
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
     return `${origin}/join/${inviteCode}`;
   }, [inviteCode]);
@@ -63,6 +64,10 @@ const InviteCrewCard = () => {
   if (!isProjectManager) return null;
 
   const copyValue = async (value, kind) => {
+    if (!value) {
+      toast.error('Invite code is unavailable. Regenerate it first.');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(value);
       setCopied(kind);
@@ -123,14 +128,16 @@ const InviteCrewCard = () => {
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 value={inviteCode}
+                placeholder="Invite code unavailable"
                 readOnly
                 className="input-field min-w-0 flex-1 text-xs font-mono tracking-[0.18em]"
               />
               <motion.button
                 type="button"
                 onClick={() => copyValue(inviteCode, 'code')}
+                disabled={!inviteCode}
                 animate={copied === 'code' ? { scale: [1, 1.04, 1] } : undefined}
-                className="btn-secondary inline-flex items-center justify-center gap-2 text-xs"
+                className="btn-secondary inline-flex items-center justify-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FiCopy /> {copied === 'code' ? 'Copied' : 'Copy Code'}
               </motion.button>
@@ -140,16 +147,18 @@ const InviteCrewCard = () => {
           <div>
             <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">Invite Link</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                value={inviteLink}
-                readOnly
-                className="input-field min-w-0 flex-1 text-xs"
-              />
+              <div
+                title={inviteLink || 'Invite link unavailable'}
+                className="input-field min-w-0 flex-1 break-all text-xs leading-5 text-gray-200"
+              >
+                {inviteLink || 'Invite link unavailable'}
+              </div>
               <motion.button
                 type="button"
                 onClick={() => copyValue(inviteLink, 'link')}
+                disabled={!inviteLink}
                 animate={copied === 'link' ? { scale: [1, 1.04, 1] } : undefined}
-                className="btn-secondary inline-flex items-center justify-center gap-2 text-xs"
+                className="btn-secondary inline-flex items-center justify-center gap-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FiCopy /> {copied === 'link' ? 'Copied' : 'Copy Link'}
               </motion.button>

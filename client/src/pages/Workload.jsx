@@ -6,21 +6,7 @@ import { motion } from 'framer-motion';
 import InitialAvatar from '../components/InitialAvatar';
 import GlassCard from '../components/command/GlassCard';
 
-const fallbackData = {
-  workload: [
-    { user: { _id: 'fallback-1', name: 'Rex Dalton', email: 'rex@missiongrid.io', role: 'Crew' }, activeCount: 6, blockedCount: 1, overdueCount: 1 },
-    { user: { _id: 'fallback-2', name: 'Aria Chen', email: 'aria@missiongrid.io', role: 'Crew' }, activeCount: 4, blockedCount: 0, overdueCount: 0 },
-    { user: { _id: 'fallback-3', name: 'Luna Park', email: 'luna@missiongrid.io', role: 'Crew' }, activeCount: 3, blockedCount: 0, overdueCount: 0 },
-    { user: { _id: 'fallback-4', name: 'Commander Nova', email: 'captain@missiongrid.io', role: 'Captain' }, activeCount: 2, blockedCount: 0, overdueCount: 0 },
-  ],
-  suggestions: [
-    {
-      message: 'Rex Dalton is carrying 6 active tasks while Commander Nova has 2. Move one review or testing task to stabilize team load.',
-      from: { name: 'Rex Dalton' },
-      to: { name: 'Commander Nova' },
-    },
-  ],
-};
+const emptyWorkloadData = { workload: [], suggestions: [] };
 
 const getLoadTone = (count) => {
   if (count >= 5) return { label: 'Overload', color: 'from-neon-red to-neon-amber', border: 'border-neon-red/25', text: 'text-neon-red', width: Math.min(100, (count / 7) * 100) };
@@ -29,12 +15,14 @@ const getLoadTone = (count) => {
 };
 
 const Workload = () => {
-  const [data, setData] = useState(fallbackData);
+  const [data, setData] = useState(emptyWorkloadData);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState('demo');
+  const [source, setSource] = useState('live');
+  const [error, setError] = useState(null);
 
   const fetchWorkloadData = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
+    setError(null);
     try {
       const { data } = await analyticsAPI.getWorkload();
       setData({
@@ -44,9 +32,10 @@ const Workload = () => {
       setSource('live');
     } catch (error) {
       console.error('Failed to sync workload:', error);
-      setData(fallbackData);
-      setSource('demo');
-      toast.error('Workload API offline. Demo team balance loaded.');
+      setData(emptyWorkloadData);
+      setSource('offline');
+      setError('Workload API is unavailable. Retry when the backend is online.');
+      toast.error('Workload API is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -72,7 +61,7 @@ const Workload = () => {
       <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-neon-blue/10 blur-3xl" />
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-cyan">{source === 'live' ? 'Live Team Telemetry' : 'Demo Team Telemetry'}</p>
+          <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-neon-cyan">{source === 'live' ? 'Live Team Telemetry' : 'API Offline'}</p>
           <h1 className="mt-1 font-display text-3xl font-black text-white lg:text-4xl">Team Workload Balancer</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
             Detect overloaded team members, rebalance assignments, and keep project delivery healthy.
@@ -82,6 +71,17 @@ const Workload = () => {
           <FiRefreshCw /> Refresh Workload
         </button>
       </motion.div>
+
+      {error && (
+        <div className="rounded-lg border border-neon-amber/30 bg-neon-amber/10 p-4 text-sm text-amber-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => fetchWorkloadData()} className="rounded-lg border border-neon-amber/30 px-3 py-2 text-xs font-semibold text-white hover:bg-neon-amber/15">
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       <GlassCard className="relative overflow-hidden p-5 lg:p-6" hover={false}>
         <img

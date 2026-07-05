@@ -86,7 +86,6 @@ const JoinTeam = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-space-950 text-white font-body">
-      <img src="/images/space_background.webp" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-75" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_22%,rgba(6,214,160,0.16),transparent_26%),linear-gradient(135deg,rgba(2,6,23,0.95),rgba(10,14,39,0.72),rgba(2,6,23,0.96))]" />
       <StarBackground />
       <motion.img
@@ -183,7 +182,7 @@ const JoinTeam = () => {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="label-text">Full Name</label>
-                  <input name="name" type="text" className="input-field text-sm" value={form.name} onChange={handleChange} placeholder="e.g. Aria Chen" required />
+                  <input name="name" type="text" className="input-field text-sm" value={form.name} onChange={handleChange} placeholder="e.g. Maya Rao" required />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="label-text">Work Email</label>

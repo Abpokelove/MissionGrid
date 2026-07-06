@@ -42,6 +42,7 @@ API.interceptors.response.use(
     if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('mg_token');
       localStorage.removeItem('mg_user');
+      localStorage.removeItem('mg_last_activity');
       window.dispatchEvent(new CustomEvent('missiongrid:unauthorized'));
     }
     return Promise.reject(error);

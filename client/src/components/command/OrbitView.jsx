@@ -46,7 +46,7 @@ const TaskModal = ({ task, onClose }) => {
   return (
     <AnimatePresence>
       {task && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
           <motion.div
             className="absolute inset-0 bg-space-950/80 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -58,7 +58,7 @@ const TaskModal = ({ task, onClose }) => {
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className="glass-card relative z-10 w-full max-w-lg overflow-hidden p-6 shadow-glow-blue"
+            className="glass-card relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-[min(30rem,calc(100vw-1.5rem))] overflow-y-auto rounded-t-3xl p-4 shadow-glow-blue sm:rounded-2xl sm:p-6"
           >
             <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-neon-blue/10 blur-3xl" />
             <button
@@ -70,7 +70,7 @@ const TaskModal = ({ task, onClose }) => {
               <FiX />
             </button>
             <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-neon-blue">Task Details</p>
-            <h3 className="mt-2 pr-10 font-display text-2xl font-bold text-white">{task.title}</h3>
+            <h3 className="mt-2 pr-10 font-display text-xl font-bold text-white sm:text-2xl">{task.title}</h3>
             <p className="mt-3 text-sm leading-6 text-gray-300">{task.description || 'No task note attached.'}</p>
             <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
@@ -108,18 +108,19 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
   const [selected, setSelected] = useState(null);
   const maxNodes = compact ? 7 : 10;
   const nodes = useMemo(() => objectives.slice(0, maxNodes), [objectives, maxNodes]);
-  const size = compact ? 300 : 430;
+  const size = compact ? 250 : 430;
   const center = size / 2;
-  const ringRadii = compact ? [48, 78, 106, 132] : [78, 116, 158, 204];
-  const orbitScale = compact ? 'scale-[0.68] min-[390px]:scale-[0.76] sm:scale-90 md:scale-100' : 'scale-[0.58] min-[390px]:scale-[0.7] sm:scale-[0.8] md:scale-90 lg:scale-100';
-  const orbitOffset = compact ? '-translate-y-4 sm:translate-y-0' : '-translate-y-3 sm:translate-y-0';
+  const ringRadii = compact ? [36, 58, 78, 96] : [78, 116, 158, 204];
+  const orbitScale = compact ? 'scale-[0.78] min-[390px]:scale-[0.84] sm:scale-90 md:scale-100' : 'scale-[0.58] min-[390px]:scale-[0.7] sm:scale-[0.8] md:scale-90 lg:scale-100';
+  const orbitOffset = compact ? 'translate-y-0' : '-translate-y-3 sm:translate-y-0';
+  const sunSizeClass = compact ? 'h-14 w-14 sm:h-20 sm:w-20 md:h-24 md:w-24' : 'h-28 w-28 sm:h-32 sm:w-32';
 
   return (
-    <div className={`relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-space-950/35 ${compact ? 'min-h-[390px] sm:min-h-[370px]' : 'min-h-[480px] sm:min-h-[500px]'}`}>
+    <div className={`relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-space-950/35 ${compact ? 'min-h-[330px] sm:min-h-[360px]' : 'min-h-[480px] sm:min-h-[500px]'}`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18),transparent_40%),radial-gradient(circle_at_72%_24%,rgba(139,92,246,0.13),transparent_28%)]" />
       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
 
-      <div className={`relative z-10 flex items-center justify-center ${compact ? 'h-[294px] sm:h-[290px] md:h-[310px]' : 'h-[380px] sm:h-[400px] md:h-[420px]'}`}>
+      <div className={`relative z-10 flex min-w-0 items-center justify-center ${compact ? 'h-[238px] min-[390px]:h-[252px] sm:h-[270px] md:h-[290px]' : 'h-[380px] sm:h-[400px] md:h-[420px]'}`}>
         <div className={`relative max-w-full origin-center ${orbitScale} ${orbitOffset}`} style={{ width: size, height: size }}>
           <div className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.18)_0%,rgba(14,165,233,0.08)_36%,transparent_68%)] blur-sm" />
 
@@ -140,13 +141,16 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
           ))}
 
           <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-            <div className="absolute h-40 w-40 rounded-full bg-amber-400/12 blur-3xl" />
-            <div className="absolute h-28 w-28 rounded-full border border-amber-200/25 shadow-glow-amber" />
-            <img
-              src="/images/sun.webp"
-              alt="Project core"
-              className={`${compact ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-28 w-28 sm:h-32 sm:w-32'} relative object-contain drop-shadow-[0_0_46px_rgba(245,158,11,0.72)]`}
-            />
+            <div className={`${compact ? 'h-28 w-28 sm:h-36 sm:w-36' : 'h-40 w-40'} absolute rounded-full bg-amber-400/12 blur-3xl`} />
+            <div className={`${compact ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-28 w-28'} absolute rounded-full border border-amber-200/25 shadow-glow-amber`} />
+            <div className={`${sunSizeClass} relative flex items-center justify-center overflow-visible`}>
+              <img
+                src="/images/sun.webp"
+                alt="Project core"
+                className="h-full w-full max-w-none object-contain drop-shadow-[2_10_46px_rgba(245,158,11,0.72)]"
+                style={{ transform: 'translate(2.25%, 0.75%) scale(1.01)' }}
+              />
+            </div>
           </div>
 
           {nodes.length === 0 && (
@@ -187,7 +191,7 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
                   <button
                     type="button"
                     onClick={() => (onSelectObjective ? onSelectObjective(task) : setSelected(task))}
-                    className={`group relative h-5 w-5 rounded-full border border-white/45 ${tone.dot} ring-4 ${tone.ring} transition-transform hover:scale-150 focus:outline-none focus:ring-2 focus:ring-neon-blue`}
+                    className={`group relative ${compact ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-5 w-5'} rounded-full border border-white/45 ${tone.dot} ring-4 ${tone.ring} transition-transform hover:scale-150 focus:outline-none focus:ring-2 focus:ring-neon-blue`}
                     aria-label={`Open ${task.title}`}
                     title={`${task.title} / ${tone.label}`}
                     style={{ boxShadow: `0 0 24px ${tone.glow}` }}
@@ -202,7 +206,7 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
                         src="/images/asteroid_blocker.webp"
                         alt=""
                         aria-hidden="true"
-                        className="absolute -left-5 -top-5 h-7 w-7 object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.7)]"
+                        className={`${compact ? '-left-4 -top-4 h-6 w-6' : '-left-5 -top-5 h-7 w-7'} absolute object-contain drop-shadow-[0_0_16px_rgba(239,68,68,0.7)]`}
                         animate={{ rotate: [-4, 5, -4], scale: [0.96, 1.08, 0.96] }}
                         transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
                       />
@@ -212,7 +216,7 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
                         src={stage}
                         alt=""
                         aria-hidden="true"
-                        className="absolute -right-7 -top-7 h-8 w-12 object-contain mix-blend-screen drop-shadow-[0_0_18px_rgba(245,158,11,0.72)]"
+                        className={`${compact ? '-right-5 -top-5 h-6 w-9' : '-right-7 -top-7 h-8 w-12'} absolute object-contain mix-blend-screen drop-shadow-[0_0_18px_rgba(245,158,11,0.72)]`}
                         animate={{ x: [5, -1, 5], y: [2, -3, 2], opacity: [0.55, 0.9, 0.55] }}
                         transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
                       />
@@ -225,7 +229,7 @@ const OrbitView = ({ objectives = [], compact = false, onSelectObjective }) => {
         </div>
       </div>
 
-      <div className="relative z-20 grid w-full grid-cols-2 gap-1.5 px-3 pb-3 text-[8px] font-mono uppercase tracking-wider text-gray-400 min-[390px]:gap-2 min-[390px]:text-[9px] sm:grid-cols-5">
+      <div className="relative z-20 grid w-full grid-cols-2 gap-1.5 px-3 pb-3 text-[8px] font-mono uppercase tracking-wider text-gray-400 min-[390px]:gap-2 min-[390px]:text-[9px] md:grid-cols-5">
         {[
           ['Completed', 'bg-emerald-400'],
           ['In Progress', 'bg-neon-cyan'],

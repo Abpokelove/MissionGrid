@@ -7,12 +7,12 @@ const CrewWorkloadCard = ({ workload = [] }) => {
   const max = Math.max(...crew.map((item) => item.activeCount), 1);
 
   return (
-    <GlassCard className="p-4 lg:p-5">
+    <GlassCard className="relative overflow-hidden p-4 lg:p-5">
       <img
         src="/images/crew_spaceship.webp"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute right-3 top-3 h-16 w-24 object-contain opacity-[0.22] mix-blend-screen drop-shadow-[0_0_26px_rgba(14,165,233,0.34)]"
+        className="pointer-events-none absolute -right-8 top-1 h-28 w-44 object-contain opacity-[0.36] mix-blend-screen drop-shadow-[0_0_54px_rgba(14,165,233,0.58)]"
       />
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>

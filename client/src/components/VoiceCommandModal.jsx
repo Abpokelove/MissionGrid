@@ -20,20 +20,40 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
 
   const recognitionRef = useRef(null);
   const usersRef = useRef([]);
+  const missionsRef = useRef([]);
+  const finalTranscriptRef = useRef('');
+  const shouldListenRef = useRef(false);
+  const restartTimerRef = useRef(null);
 
   useEffect(() => {
     usersRef.current = users;
   }, [users]);
 
   useEffect(() => {
+    missionsRef.current = missions;
+  }, [missions]);
+
+  useEffect(() => {
     if (isOpen) {
       fetchMissionsAndUsers();
       // Reset state
       setTranscript('');
+      finalTranscriptRef.current = '';
       setParsedTitle('');
       setParsedAssigneeId('');
       setParsedPriority('Medium');
       setParsedDeadline('');
+    } else {
+      shouldListenRef.current = false;
+      if (restartTimerRef.current) window.clearTimeout(restartTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // Browser speech recognition can throw when already idle.
+        }
+      }
+      setIsListening(false);
     }
   }, [isOpen]);
 
@@ -53,69 +73,112 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const normalizeForMatch = (value) => value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const titleCase = (value) => value
+    .trim()
+    .split(/\s+/)
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+    .join(' ');
+
+  const findUserBySpokenName = (spokenName) => {
+    const normalizedSpoken = normalizeForMatch(spokenName);
+    if (!normalizedSpoken) return null;
+
+    return usersRef.current.find((user) => {
+      const name = normalizeForMatch(user.name || '');
+      const emailPrefix = normalizeForMatch((user.email || '').split('@')[0] || '');
+      return name.includes(normalizedSpoken)
+        || normalizedSpoken.includes(name)
+        || emailPrefix.includes(normalizedSpoken)
+        || normalizedSpoken.includes(emailPrefix);
+    });
+  };
+
+  const findMissionBySpokenName = (spokenName) => {
+    const normalizedSpoken = normalizeForMatch(spokenName);
+    if (!normalizedSpoken) return null;
+
+    return missionsRef.current.find((mission) => {
+      const title = normalizeForMatch(mission.title || '');
+      return title.includes(normalizedSpoken) || normalizedSpoken.includes(title);
+    });
+  };
+
   // Rule-based parsing: "create task [title] assign to [name] priority [priority]"
   const parseCommand = useCallback((text) => {
-    const cleaned = text.toLowerCase();
+    const cleaned = normalizeForMatch(text);
+    const stopWords = /\b(assign|assigned|assignee|owner|for|priority|importance|deadline|due|by|project|mission)\b/;
 
-    // 1. Try to extract Title
-    // Look for phrases like: "create objective x", "add task x", "create task x", "task x"
     let title = '';
-    const taskKeywords = ['create objective', 'add objective', 'create task', 'add task', 'objective', 'task'];
-    for (const kw of taskKeywords) {
-      if (cleaned.includes(kw)) {
-        const index = cleaned.indexOf(kw) + kw.length;
-        // Grab everything after keyword up to helper prepositions like "assign", "for", "priority"
-        let rawTitle = cleaned.slice(index).trim();
-        rawTitle = rawTitle.split(/assign to|assigned to|for|priority|deadline/)[0].trim();
+    const titleMatch = text.match(/(?:called|named|title)\s+(.+?)(?=\s+(?:assign|assigned|assignee|owner|for|priority|importance|deadline|due|by|project|mission)\b|$)/i);
+    if (titleMatch?.[1]) {
+      title = titleCase(titleMatch[1]);
+    }
+
+    const taskKeywords = ['create objective', 'add objective', 'new objective', 'create task', 'add task', 'new task', 'make task', 'objective', 'task'];
+    for (const keyword of taskKeywords) {
+      if (!title && cleaned.includes(keyword)) {
+        const index = cleaned.indexOf(keyword) + keyword.length;
+        const rawTitle = cleaned.slice(index).trim().split(stopWords)[0].trim();
         if (rawTitle) {
-          title = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+          title = titleCase(rawTitle);
           break;
         }
       }
     }
-    if (title) setParsedTitle(title);
-    else if (text.trim() && !title) {
-      // Use the first chunk of text when no explicit task title is detected.
-      const fallbackTitle = text.split(/assign to|assigned to|for|priority|deadline/i)[0].trim();
-      setParsedTitle(fallbackTitle);
+
+    if (title) {
+      setParsedTitle(title);
+    } else if (text.trim()) {
+      const fallbackTitle = text.split(stopWords)[0].trim();
+      if (fallbackTitle) setParsedTitle(titleCase(fallbackTitle));
     }
 
-    // 2. Try to extract Assignee
-    // Look for "assign to [name]", "assigned to [name]", "for [name]"
-    const assigneeMatch = text.match(/(?:assign to|assigned to|for)\s+([a-zA-Z\s]+?)(?=\s+priority|\s+deadline|$)/i);
-    if (assigneeMatch && assigneeMatch[1]) {
-      const rawName = assigneeMatch[1].trim().toLowerCase();
-      // Match against fetched users
-      const matchedUser = usersRef.current.find(u => u.name.toLowerCase().includes(rawName));
-      if (matchedUser) {
-        setParsedAssigneeId(matchedUser._id);
-      }
+    const assigneeMatch = text.match(/(?:assign(?:ed)?(?:\s+to)?|assignee|owner|for)\s+([a-zA-Z\s]+?)(?=\s+(?:priority|importance|deadline|due|by|project|mission)\b|$)/i);
+    if (assigneeMatch?.[1]) {
+      const matchedUser = findUserBySpokenName(assigneeMatch[1]);
+      if (matchedUser) setParsedAssigneeId(matchedUser._id);
     }
 
-    // 3. Try to extract Priority
-    // Look for "priority [low|medium|high|critical]"
-    const priorityMatch = text.match(/priority\s+(low|medium|high|critical)/i);
-    if (priorityMatch && priorityMatch[1]) {
+    const priorityMatch = text.match(/(?:priority|importance)\s+(low|medium|high|critical|urgent|important)/i);
+    if (priorityMatch?.[1]) {
       const pVal = priorityMatch[1].toLowerCase();
-      const capitalized = pVal.charAt(0).toUpperCase() + pVal.slice(1);
-      setParsedPriority(capitalized);
+      setParsedPriority(
+        pVal === 'urgent'
+          ? 'Critical'
+          : pVal === 'important'
+            ? 'High'
+            : pVal.charAt(0).toUpperCase() + pVal.slice(1)
+      );
     }
 
-    // 4. Try to extract Deadline (e.g. "deadline tomorrow", "deadline next week", "deadline in 3 days")
-    if (cleaned.includes('deadline')) {
-      const today = new Date();
-      if (cleaned.includes('tomorrow')) {
-        today.setDate(today.getDate() + 1);
-        setParsedDeadline(today.toISOString().split('T')[0]);
+    const missionMatch = text.match(/(?:project|mission)\s+([a-zA-Z0-9\s]+?)(?=\s+(?:assign|assigned|assignee|owner|for|priority|importance|deadline|due|by)\b|$)/i);
+    if (missionMatch?.[1]) {
+      const matchedMission = findMissionBySpokenName(missionMatch[1]);
+      if (matchedMission) setSelectedMissionId(matchedMission._id);
+    }
+
+    const setDateOffset = (days) => {
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      setParsedDeadline(date.toISOString().split('T')[0]);
+    };
+
+    if (/\b(deadline|due|by)\b/.test(cleaned)) {
+      if (cleaned.includes('today')) {
+        setDateOffset(0);
+      } else if (cleaned.includes('tomorrow')) {
+        setDateOffset(1);
       } else if (cleaned.includes('next week') || cleaned.includes('in 7 days') || cleaned.includes('a week')) {
-        today.setDate(today.getDate() + 7);
-        setParsedDeadline(today.toISOString().split('T')[0]);
+        setDateOffset(7);
       } else {
         const daysMatch = cleaned.match(/in\s+(\d+)\s+days/);
-        if (daysMatch && daysMatch[1]) {
-          today.setDate(today.getDate() + parseInt(daysMatch[1]));
-          setParsedDeadline(today.toISOString().split('T')[0]);
-        }
+        if (daysMatch?.[1]) setDateOffset(Number(daysMatch[1]));
       }
     }
   }, []);
@@ -135,36 +198,62 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
-      let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const chunk = event.results[i][0].transcript.trim();
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          finalTranscriptRef.current = `${finalTranscriptRef.current} ${chunk}`.replace(/\s+/g, ' ').trim();
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interimTranscript += ` ${chunk}`;
         }
       }
 
-      const currentText = finalTranscript || interimTranscript;
-      setTranscript(currentText);
-      parseCommand(currentText);
+      const currentText = `${finalTranscriptRef.current} ${interimTranscript}`.replace(/\s+/g, ' ').trim();
+      if (currentText) {
+        setTranscript(currentText);
+        parseCommand(currentText);
+      }
     };
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      setIsListening(false);
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        shouldListenRef.current = false;
+        setIsListening(false);
+        toast.error('Microphone permission is blocked');
+      }
     };
 
     recognition.onend = () => {
+      if (shouldListenRef.current) {
+        restartTimerRef.current = window.setTimeout(() => {
+          try {
+            recognition.start();
+            setIsListening(true);
+          } catch {
+            setIsListening(false);
+          }
+        }, 250);
+        return;
+      }
       setIsListening(false);
     };
 
     recognitionRef.current = recognition;
+
+    return () => {
+      shouldListenRef.current = false;
+      if (restartTimerRef.current) window.clearTimeout(restartTimerRef.current);
+      recognition.abort();
+    };
   }, [parseCommand]);
 
   const startListening = () => {
     if (!supported || !recognitionRef.current) return;
     try {
+      shouldListenRef.current = true;
+      finalTranscriptRef.current = transcript ? transcript.trim() : '';
+      if (restartTimerRef.current) window.clearTimeout(restartTimerRef.current);
       recognitionRef.current.start();
       setIsListening(true);
       toast.success('Voice control is listening');
@@ -175,6 +264,8 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
 
   const stopListening = () => {
     if (!recognitionRef.current) return;
+    shouldListenRef.current = false;
+    if (restartTimerRef.current) window.clearTimeout(restartTimerRef.current);
     recognitionRef.current.stop();
     setIsListening(false);
   };
@@ -307,6 +398,7 @@ const VoiceCommandModal = ({ isOpen, onClose }) => {
                   value={transcript}
                   onChange={(e) => {
                     setTranscript(e.target.value);
+                    finalTranscriptRef.current = e.target.value.trim();
                     parseCommand(e.target.value);
                   }}
                   placeholder={

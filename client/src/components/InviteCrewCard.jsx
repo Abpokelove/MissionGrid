@@ -104,7 +104,7 @@ const InviteCrewCard = () => {
         src="/images/crew_spaceship.webp"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute -right-12 bottom-0 h-36 w-48 object-contain opacity-[0.22] mix-blend-screen drop-shadow-[0_0_34px_rgba(14,165,233,0.35)]"
+        className="pointer-events-none absolute -right-14 bottom-0 h-48 w-64 object-contain opacity-[0.36] mix-blend-screen drop-shadow-[0_0_58px_rgba(14,165,233,0.58)]"
       />
 
       <div className="relative">

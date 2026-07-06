@@ -76,7 +76,7 @@ const TeamMembersCard = ({ compact = false, limit = compact ? 5 : 8 }) => {
         src="/images/crew_spaceship.webp"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute -right-10 top-4 h-28 w-40 object-contain opacity-[0.16] mix-blend-screen drop-shadow-[0_0_26px_rgba(14,165,233,0.35)]"
+        className="pointer-events-none absolute -right-12 top-1 h-36 w-56 object-contain opacity-[0.34] mix-blend-screen drop-shadow-[0_0_46px_rgba(14,165,233,0.58)]"
       />
 
       <div className="relative">
